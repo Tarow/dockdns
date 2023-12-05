@@ -48,22 +48,26 @@ func (h handler) Run() error {
 
 	dockerDomains, err := h.filterDockerLabels()
 	if err != nil {
-		slog.Error("Could not fetch domains from docker labels", "error", err)
+		slog.Error("Could not fetch domains from docker labels, ignoring label configuration", "error", err)
 	}
 
 	allDomains := append(staticDomains, dockerDomains...)
 	slog.Debug("Extracted all domains", "domains", allDomains)
 
-	publicIp4, err := ip.GetPublicIP4Address()
-	if err != nil {
-		return err
-	}
-	publicIp6, err := ip.GetPublicIP6Address()
-	if err != nil {
-		return err
-	}
+	if len(allDomains) > 0 {
+		publicIp4, err := ip.GetPublicIP4Address()
+		if err != nil {
+			return err
+		}
+		publicIp6, err := ip.GetPublicIP6Address()
+		if err != nil {
+			return err
+		}
 
-	h.updateRecords(allDomains, publicIp4, publicIp6)
+		h.updateRecords(allDomains, publicIp4, publicIp6)
+	} else {
+		slog.Info("Found no records to update")
+	}
 
 	return nil
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log/slog"
 	"os"
 
@@ -11,9 +12,12 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
-const configPath = "config.yaml"
+var configPath string
 
 func main() {
+	flag.StringVar(&configPath, "config", "config.yaml", "Path to the configuration file")
+	flag.Parse()
+
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
@@ -23,6 +27,7 @@ func main() {
 	err := cleanenv.ReadConfig(configPath, &appCfg)
 	if err != nil {
 		slog.Error("Failed to read "+configPath, "error", err)
+		os.Exit(1)
 	}
 	slog.Debug("Successfully read config", "config", appCfg)
 
@@ -41,5 +46,6 @@ func main() {
 	err = handler.Run()
 	if err != nil {
 		slog.Debug("DNS Handler exited with error", "error", err)
+		os.Exit(1)
 	}
 }

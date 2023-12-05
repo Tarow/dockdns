@@ -22,10 +22,12 @@ func getPublicAddress(ip4 bool) (string, error) {
 		param = "-6"
 	}
 
-	cmd := exec.Command("curl", param, "https://www.cloudflare.com/cdn-cgi/trace")
+	const ipResolverUri = "https://www.cloudflare.com/cdn-cgi/trace"
+
+	cmd := exec.Command("curl", param, ipResolverUri)
 	output, err := cmd.Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("could not fetch public ip address from %s using curl (%s): %w", ipResolverUri, param, err)
 	}
 
 	// Convert the output to a string
