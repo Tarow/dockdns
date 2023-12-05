@@ -23,8 +23,16 @@ type DNS struct {
 type Domains []DomainRecord
 
 type DomainRecord struct {
-	Name    string `yaml:"name" label:"dockdns.domain"`
+	Name    string `yaml:"name" label:"dockdns.name"`
 	IP4     string `yaml:"a" label:"dockdns.a"`
 	IP6     string `yaml:"aaaa" label:"dockdns.aaaa"`
 	Proxied string `yaml:"dockdns.proxied"`
+}
+
+func (d DomainRecord) GetIP(recordType string) string {
+	if recordType == "A" {
+		return d.IP4
+	} else {
+		return d.IP6
+	}
 }

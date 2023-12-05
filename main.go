@@ -22,7 +22,7 @@ func main() {
 	flag.Parse()
 
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
 
@@ -49,7 +49,7 @@ func main() {
 
 	run := func() {
 		if err := handler.Run(); err != nil {
-			slog.Debug("DNS Handler exited with error", "error", err)
+			slog.Error("DNS handler exited with error", "error", err)
 		}
 	}
 
@@ -58,7 +58,6 @@ func main() {
 
 	run()
 	for {
-		// Wait for either the interval or a termination signal
 		select {
 		case <-time.After(time.Duration(appCfg.Interval) * time.Second):
 			run()

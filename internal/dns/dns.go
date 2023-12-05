@@ -2,7 +2,6 @@ package dns
 
 import (
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/Tarow/dockdns/internal/config"
@@ -18,7 +17,8 @@ type handler struct {
 }
 
 type Provider interface {
-	Get(domain, recordType string) (Record, error)
+	List() ([]Record, error)
+	Get(name, recordType string) (Record, error)
 	Create(record Record) (Record, error)
 	Update(record Record) (Record, error)
 	Delete(record Record) error
@@ -26,7 +26,7 @@ type Provider interface {
 
 type Record struct {
 	ID      string
-	Domain  string
+	Name    string
 	IP      string
 	Type    string
 	Proxied *bool
@@ -44,119 +44,80 @@ func NewHandler(provider Provider, dnsDefaultCfg config.DNS,
 }
 
 func (h handler) Run() error {
+	slog.Debug("starting dns update job")
 	staticDomains := h.staticDomains
+	slog.Debug("static config", "domains", staticDomains)
 
 	dockerDomains, err := h.filterDockerLabels()
 	if err != nil {
 		slog.Error("Could not fetch domains from docker labels, ignoring label configuration", "error", err)
+	} else {
+		slog.Debug("dynamic docker config", "domains", dockerDomains)
 	}
 
-	allDomains := append(staticDomains, dockerDomains...)
-	slog.Debug("Extracted all domains", "domains", allDomains)
+	allDomains := removeDuplicates(staticDomains, dockerDomains)
+	slog.Debug("removed duplicates", "domains", allDomains)
 
 	if len(allDomains) > 0 {
 		publicIp4, err := ip.GetPublicIP4Address()
 		if err != nil {
 			return err
+		} else {
+			slog.Debug("got public ipv4 address", "ip", publicIp4)
 		}
 		publicIp6, err := ip.GetPublicIP6Address()
 		if err != nil {
 			return err
+		} else {
+			slog.Debug("got public ipv6 address", "ip", publicIp6)
 		}
+
+		h.setIPs(allDomains, publicIp4, publicIp6)
+		slog.Debug("set missing ips", "domains", allDomains)
 
 		h.updateRecords(allDomains, publicIp4, publicIp6)
 	} else {
 		slog.Info("Found no records to update")
 	}
 
+	if h.dnsDefaultCfg.PurgeUnknown {
+		h.purgeUnknownRecords(allDomains)
+	}
+
 	return nil
 }
 
-func (h handler) updateRecords(domains []config.DomainRecord, publicIp4, publicIp6 string) {
+func (h handler) setIPs(domains []config.DomainRecord, publicIp4, publicIp6 string) {
+	for i, domain := range domains {
+		if strings.TrimSpace(domain.IP4) == "" && h.dnsDefaultCfg.EnableIP4 {
+			domain.IP4 = publicIp4
+		}
+		if strings.TrimSpace(domain.IP6) == "" && h.dnsDefaultCfg.EnableIP6 {
+			domain.IP6 = publicIp6
+		}
+		domains[i] = domain
+	}
+}
 
+func removeDuplicates(staticDomains, dockerDomains []config.DomainRecord) []config.DomainRecord {
+	result := staticDomains
+
+	for _, dockerDomain := range dockerDomains {
+		if containsDomain(staticDomains, dockerDomain.Name) {
+			slog.Info("Found duplicate domain config, using static configuration", "subdomain", dockerDomain.Name)
+		} else {
+			result = append(result, dockerDomain)
+		}
+	}
+	return result
+}
+
+func containsDomain(domains []config.DomainRecord, domainName string) bool {
 	for _, domain := range domains {
-		// IPv4 record has to be updated
-		if strings.TrimSpace(domain.IP4) != "" || h.dnsDefaultCfg.EnableIP4 {
-			existingRecord, err := h.provider.Get(domain.Name, "A")
-			if err != nil {
-				slog.Error("failed to fetch existing record", "domain", domain.Name, "type", "A", "action", "skip record")
-				continue
-			}
-			newRecord := getIp4Record(domain, h.dnsDefaultCfg, publicIp4)
-			var updatedRecord Record
-			if existingRecord.ID == "" {
-				updatedRecord, err = h.provider.Create(newRecord)
-				if err != nil {
-					slog.Error("failed to update record", "record", newRecord, "error", err)
-					continue
-				}
-			} else {
-				newRecord.ID = existingRecord.ID
-				updatedRecord, err = h.provider.Update(newRecord)
-				if err != nil {
-					slog.Error("failed to update record", "record", newRecord, "error", err)
-					continue
-				}
-			}
-			slog.Info("Successfully updated record", "domain", updatedRecord.Domain, "ip", updatedRecord.IP, "type", updatedRecord.Type)
-		}
+		if domain.Name == domainName {
 
-		// IPv6 record has to be updated
-		if strings.TrimSpace(domain.IP6) != "" || h.dnsDefaultCfg.EnableIP6 {
-			existingRecord, err := h.provider.Get(domain.Name, "AAAA")
-			if err != nil {
-				slog.Error("failed to fetch existing record", "domain", domain.Name, "type", "AAAA", "action", "skip record")
-				continue
-			}
-			newRecord := getIp6Record(domain, h.dnsDefaultCfg, publicIp6)
-			var updatedRecord Record
-			if existingRecord.ID == "" {
-				updatedRecord, err = h.provider.Create(newRecord)
-				if err != nil {
-					slog.Error("failed to update record", "record", newRecord, "error", err)
-					continue
-				}
-			} else {
-				newRecord.ID = existingRecord.ID
-				updatedRecord, err = h.provider.Update(newRecord)
-				if err != nil {
-					slog.Error("failed to update record", "record", newRecord, "error", err)
-					continue
-				}
-			}
-			slog.Info("Successfully updated record", "domain", updatedRecord.Domain, "ip", updatedRecord.IP, "type", updatedRecord.Type)
+			return true
 		}
 	}
-}
-
-func getIp4Record(domain config.DomainRecord, dnsCfg config.DNS, publicIp4 string) Record {
-	ip := domain.IP4
-	if strings.TrimSpace(ip) == "" {
-		ip = publicIp4
-	}
-
-	proxied, _ := strconv.ParseBool(domain.Proxied)
-	return Record{
-		Domain:  domain.Name,
-		IP:      ip,
-		Type:    "A",
-		TTL:     dnsCfg.TTL,
-		Proxied: &proxied,
-	}
-}
-
-func getIp6Record(domain config.DomainRecord, dnsCfg config.DNS, publicIp6 string) Record {
-	ip := domain.IP6
-	if strings.TrimSpace(ip) == "" {
-		ip = publicIp6
-	}
-
-	proxied, _ := strconv.ParseBool(domain.Proxied)
-	return Record{
-		Domain:  domain.Name,
-		IP:      ip,
-		Type:    "AAAA",
-		TTL:     dnsCfg.TTL,
-		Proxied: &proxied,
-	}
+	return false
 }

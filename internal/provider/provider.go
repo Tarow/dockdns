@@ -10,7 +10,8 @@ import (
 )
 
 type Provider interface {
-	Get(domain, recordType string) (dns.Record, error)
+	List() ([]dns.Record, error)
+	Get(name, recordType string) (dns.Record, error)
 	Create(record dns.Record) (dns.Record, error)
 	Update(record dns.Record) (dns.Record, error)
 	Delete(record dns.Record) error

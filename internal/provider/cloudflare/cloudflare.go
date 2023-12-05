@@ -7,9 +7,6 @@ import (
 	"github.com/cloudflare/cloudflare-go"
 )
 
-// UpdateDNSEntry updates or creates the DNS entry of a specified subdomain with a new IP address,
-// and purges outdated DNS records that aren't part of the provided array.
-
 type cloudflareProvider struct {
 	apiToken string
 	zoneID   *cloudflare.ResourceContainer
@@ -32,6 +29,45 @@ func New(apiToken, zoneId string) (cloudflareProvider, error) {
 	}, nil
 }
 
+func (cfp cloudflareProvider) List() ([]dns.Record, error) {
+	ip4Records, err := cfp.list("A")
+	if err != nil {
+		return nil, err
+	}
+
+	ip6Records, err := cfp.list("AAAA")
+	if err != nil {
+		return nil, err
+	}
+
+	return append(ip4Records, ip6Records...), nil
+}
+
+func (cfp cloudflareProvider) list(recordType string) ([]dns.Record, error) {
+	var allRecords []cloudflare.DNSRecord
+
+	page := 1
+	perPage := 100
+	for {
+		records, resultInfo, err := cfp.api.ListDNSRecords(context.Background(), cfp.zoneID, cloudflare.ListDNSRecordsParams{
+			Type: recordType,
+			ResultInfo: cloudflare.ResultInfo{
+				Page:    page,
+				PerPage: perPage,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		allRecords = append(allRecords, records...)
+		if resultInfo.Page == resultInfo.TotalPages {
+			return mapRecords(allRecords), nil
+		}
+
+		page++
+	}
+}
+
 func (cfp cloudflareProvider) Get(domain, recordType string) (dns.Record, error) {
 	records, _, err := cfp.api.ListDNSRecords(context.Background(), cfp.zoneID, cloudflare.ListDNSRecordsParams{
 		Type: recordType,
@@ -49,7 +85,7 @@ func (cfp cloudflareProvider) Get(domain, recordType string) (dns.Record, error)
 func (cfp cloudflareProvider) Create(record dns.Record) (dns.Record, error) {
 	createdRecord, err := cfp.api.CreateDNSRecord(context.Background(), cfp.zoneID, cloudflare.CreateDNSRecordParams{
 		Type:    record.Type,
-		Name:    record.Domain,
+		Name:    record.Name,
 		Content: record.IP,
 		TTL:     int(record.TTL),
 	})
@@ -79,10 +115,20 @@ func (cfp cloudflareProvider) Delete(record dns.Record) error {
 	return cfp.api.DeleteDNSRecord(context.Background(), cfp.zoneID, record.ID)
 }
 
+func mapRecords(records []cloudflare.DNSRecord) []dns.Record {
+	var mappedRecords []dns.Record
+
+	for _, record := range records {
+		mappedRecords = append(mappedRecords, mapRecord(record))
+	}
+
+	return mappedRecords
+}
+
 func mapRecord(r cloudflare.DNSRecord) dns.Record {
 	return dns.Record{
 		ID:      r.ID,
-		Domain:  r.Name,
+		Name:    r.Name,
 		Type:    r.Type,
 		IP:      r.Content,
 		Proxied: r.Proxied,

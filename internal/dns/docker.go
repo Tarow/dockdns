@@ -10,12 +10,12 @@ import (
 	"github.com/docker/docker/api/types/filters"
 )
 
-const domainLabel = "dockdns.domain"
+const dockdnsNameLabel = "dockdns.name"
 
 func (h handler) filterDockerLabels() ([]config.DomainRecord, error) {
 	containers, err := h.dockerCli.ContainerList(context.Background(), types.ContainerListOptions{
 		All:     true,
-		Filters: filters.NewArgs(filters.Arg("label", domainLabel)),
+		Filters: filters.NewArgs(filters.Arg("label", dockdnsNameLabel)),
 	})
 	if err != nil {
 		return nil, err
