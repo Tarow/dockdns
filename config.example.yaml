@@ -1,3 +1,5 @@
+interval: 300
+
 provider:
   name: cloudflare
   apiToken: ...

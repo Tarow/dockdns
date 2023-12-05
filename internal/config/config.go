@@ -1,6 +1,7 @@
 package config
 
 type AppConfig struct {
+	Interval uint     `yaml:"interval"`
 	Provider Provider `yaml:"provider"`
 	DNS      DNS      `yaml:"dns"`
 	Domains  Domains  `yaml:"domains"`

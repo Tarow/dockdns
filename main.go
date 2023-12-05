@@ -4,6 +4,9 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/dns"
@@ -43,9 +46,25 @@ func main() {
 	}
 
 	handler := dns.NewHandler(dnsProvider, appCfg.DNS, appCfg.Domains, dockerCli)
-	err = handler.Run()
-	if err != nil {
-		slog.Debug("DNS Handler exited with error", "error", err)
-		os.Exit(1)
+
+	run := func() {
+		if err := handler.Run(); err != nil {
+			slog.Debug("DNS Handler exited with error", "error", err)
+		}
+	}
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	run()
+	for {
+		// Wait for either the interval or a termination signal
+		select {
+		case <-time.After(time.Duration(appCfg.Interval) * time.Second):
+			run()
+		case <-signalCh:
+			slog.Info("Received termination signal. Exiting...")
+			return
+		}
 	}
 }
