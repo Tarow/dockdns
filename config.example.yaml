@@ -1,0 +1,17 @@
+provider:
+  name: cloudflare
+  apiToken: ...
+  zoneID: ...
+
+dns:
+  a: true
+  aaaa: false
+  ttl: 600
+  purgeUnknown: true
+
+domains:
+  - name: "*.somedomain.com"
+    a: 10.0.0.2
+
+  - name: "somedomain.com"
+    a: 10.0.0.2
