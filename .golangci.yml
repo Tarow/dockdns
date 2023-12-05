@@ -1,0 +1,18 @@
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - goimports
+
+run:
+  timeout: 5m
+
+issues:
+  fix: false
+  max-same-issues: 0
