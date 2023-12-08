@@ -2,7 +2,6 @@ package dns
 
 import (
 	"log/slog"
-	"strings"
 
 	"github.com/Tarow/dockdns/internal/config"
 )
@@ -15,7 +14,7 @@ func (h handler) purgeUnknownRecords(domains []config.DomainRecord) {
 	}
 
 	for _, record := range existingRecords {
-		if !containsRecord(domains, record) {
+		if !containsRecord(domains, record, h.dnsCfg) {
 			if err := h.provider.Delete(record); err != nil {
 				slog.Error("failed to purge record", "name", record.Name, "type", record.Type)
 			} else {
@@ -26,13 +25,13 @@ func (h handler) purgeUnknownRecords(domains []config.DomainRecord) {
 }
 
 // Check if an entry with same domain and type exists
-func containsRecord(domains []config.DomainRecord, toCheck Record) bool {
+func containsRecord(domains []config.DomainRecord, toCheck Record, dnsCfg config.DNS) bool {
 	for _, domain := range domains {
 		if domain.Name == toCheck.Name {
-			if strings.TrimSpace(domain.IP4) != "" && toCheck.Type == "A" {
+			if dnsCfg.EnableIP4 && toCheck.Type == "A" {
 				return true
 			}
-			if strings.TrimSpace(domain.IP6) != "" && toCheck.Type == "AAAA" {
+			if dnsCfg.EnableIP6 && toCheck.Type == "AAAA" {
 				return true
 			}
 		}

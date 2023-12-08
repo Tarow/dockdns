@@ -11,7 +11,7 @@ import (
 
 type handler struct {
 	provider      Provider
-	dnsDefaultCfg config.DNS
+	dnsCfg        config.DNS
 	staticDomains config.Domains
 	dockerCli     *client.Client
 }
@@ -37,7 +37,7 @@ func NewHandler(provider Provider, dnsDefaultCfg config.DNS,
 	staticDomains config.Domains, dockerCli *client.Client) handler {
 	return handler{
 		provider:      provider,
-		dnsDefaultCfg: dnsDefaultCfg,
+		dnsCfg:        dnsDefaultCfg,
 		staticDomains: staticDomains,
 		dockerCli:     dockerCli,
 	}
@@ -59,28 +59,36 @@ func (h handler) Run() error {
 	slog.Debug("removed duplicates", "domains", allDomains)
 
 	if len(allDomains) > 0 {
-		publicIp4, err := ip.GetPublicIP4Address()
-		if err != nil {
-			return err
-		} else {
-			slog.Debug("got public ipv4 address", "ip", publicIp4)
+		var publicIp4, publicIp6 string
+		var err error
+
+		if h.dnsCfg.EnableIP4 {
+			publicIp4, err = ip.GetPublicIP4Address()
+			if err != nil {
+				slog.Warn("could not fetch public IPv4 address, only static entries will be set", "error", err)
+			} else {
+				slog.Debug("got public IPv4 address", "ip", publicIp4)
+			}
 		}
-		publicIp6, err := ip.GetPublicIP6Address()
-		if err != nil {
-			return err
-		} else {
-			slog.Debug("got public ipv6 address", "ip", publicIp6)
+
+		if h.dnsCfg.EnableIP6 {
+			publicIp6, err = ip.GetPublicIP6Address()
+			if err != nil {
+				slog.Warn("could not fetch public IPv6 address, only static entries will be set", "error", err)
+			} else {
+				slog.Debug("got public IPv6 address", "ip", publicIp4)
+			}
 		}
 
 		h.setIPs(allDomains, publicIp4, publicIp6)
-		slog.Debug("set missing ips", "domains", allDomains)
+		slog.Debug("set missing IPs", "domains", allDomains)
 
 		h.updateRecords(allDomains, publicIp4, publicIp6)
 	} else {
 		slog.Info("Found no records to update")
 	}
 
-	if h.dnsDefaultCfg.PurgeUnknown {
+	if h.dnsCfg.PurgeUnknown {
 		h.purgeUnknownRecords(allDomains)
 	}
 
@@ -89,10 +97,10 @@ func (h handler) Run() error {
 
 func (h handler) setIPs(domains []config.DomainRecord, publicIp4, publicIp6 string) {
 	for i, domain := range domains {
-		if strings.TrimSpace(domain.IP4) == "" && h.dnsDefaultCfg.EnableIP4 {
+		if strings.TrimSpace(domain.IP4) == "" && h.dnsCfg.EnableIP4 {
 			domain.IP4 = publicIp4
 		}
-		if strings.TrimSpace(domain.IP6) == "" && h.dnsDefaultCfg.EnableIP6 {
+		if strings.TrimSpace(domain.IP6) == "" && h.dnsCfg.EnableIP6 {
 			domain.IP6 = publicIp6
 		}
 		domains[i] = domain
