@@ -11,11 +11,11 @@ import (
 func (h handler) updateRecords(domains []config.DomainRecord, publicIp4, publicIp6 string) {
 	for _, domain := range domains {
 		if strings.TrimSpace(domain.IP4) != "" && h.dnsCfg.EnableIP4 {
-			h.updateRecord(domain, "A")
+			h.updateRecord(domain, TypeA)
 		}
 
 		if strings.TrimSpace(domain.IP6) != "" && h.dnsCfg.EnableIP6 {
-			h.updateRecord(domain, "AAAA")
+			h.updateRecord(domain, TypeAAAA)
 		}
 	}
 }

@@ -33,6 +33,11 @@ type Record struct {
 	TTL     uint
 }
 
+type RecordType string
+
+const TypeA = "A"
+const TypeAAAA = "AAAA"
+
 func NewHandler(provider Provider, dnsDefaultCfg config.DNS,
 	staticDomains config.Domains, dockerCli *client.Client) handler {
 	return handler{

@@ -29,7 +29,7 @@ func main() {
 	var appCfg config.AppConfig
 	err := cleanenv.ReadConfig(configPath, &appCfg)
 	if err != nil {
-		slog.Error("Failed to read "+configPath, "error", err)
+		slog.Error("Failed to read config", "path", configPath, "error", err)
 		os.Exit(1)
 	}
 	slog.Debug("Successfully read config", "config", appCfg)

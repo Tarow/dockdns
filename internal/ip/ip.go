@@ -1,8 +1,11 @@
 package ip
 
 import (
+	"context"
 	"fmt"
-	"os/exec"
+	"io"
+	"net"
+	"net/http"
 	"regexp"
 )
 
@@ -15,42 +18,43 @@ func GetPublicIP6Address() (string, error) {
 }
 
 func getPublicAddress(ip4 bool) (string, error) {
-	var param string
+	var proto string
 	if ip4 {
-		param = "-4"
+		proto = "tcp4"
 	} else {
-		param = "-6"
+		proto = "tcp6"
 	}
 
-	const ipResolverUri = "https://www.cloudflare.com/cdn-cgi/trace"
-
-	cmd := exec.Command("curl", param, ipResolverUri)
-	output, err := cmd.Output()
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return (&net.Dialer{}).DialContext(ctx, proto, addr)
+			},
+		},
+	}
+	resp, err := client.Get("https://www.cloudflare.com/cdn-cgi/trace")
 	if err != nil {
-		return "", fmt.Errorf("could not fetch public ip address from %s using curl (%s): %w", ipResolverUri, param, err)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
 	}
 
-	// Convert the output to a string
-	outputStr := string(output)
-
-	// Extract the IP address using a regular expression
-	ip := extractIPAddress(outputStr)
-	if ip == "" {
-		return "", fmt.Errorf("IP address not found in the response")
-	}
-
-	return ip, nil
+	return extractIPAddress(string(body))
 }
 
-func extractIPAddress(response string) string {
+func extractIPAddress(response string) (string, error) {
 	// Regular expression to match the IP address
 	ipRegex := regexp.MustCompile(`\bip=(.*)\b`)
 
 	// Find the first match in the response
 	match := ipRegex.FindStringSubmatch(response)
-	if len(match) == 2 {
-		return match[1]
+	if len(match) > 1 {
+		return match[1], nil
 	}
 
-	return ""
+	return "", fmt.Errorf("could not extract ip address from content: %s", response)
 }

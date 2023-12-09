@@ -28,10 +28,10 @@ func (h handler) purgeUnknownRecords(domains []config.DomainRecord) {
 func containsRecord(domains []config.DomainRecord, toCheck Record, dnsCfg config.DNS) bool {
 	for _, domain := range domains {
 		if domain.Name == toCheck.Name {
-			if dnsCfg.EnableIP4 && toCheck.Type == "A" {
+			if dnsCfg.EnableIP4 && toCheck.Type == TypeA {
 				return true
 			}
-			if dnsCfg.EnableIP6 && toCheck.Type == "AAAA" {
+			if dnsCfg.EnableIP6 && toCheck.Type == TypeAAAA {
 				return true
 			}
 		}

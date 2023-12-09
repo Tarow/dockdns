@@ -30,12 +30,12 @@ func New(apiToken, zoneId string) (cloudflareProvider, error) {
 }
 
 func (cfp cloudflareProvider) List() ([]dns.Record, error) {
-	ip4Records, err := cfp.list("A")
+	ip4Records, err := cfp.list(dns.TypeA)
 	if err != nil {
 		return nil, err
 	}
 
-	ip6Records, err := cfp.list("AAAA")
+	ip6Records, err := cfp.list(dns.TypeAAAA)
 	if err != nil {
 		return nil, err
 	}
