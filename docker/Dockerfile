@@ -6,13 +6,12 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-COPY . .
+COPY main.go .
+COPY internal/ internal/
 
 RUN go build
 
 FROM alpine:3.18
-
-RUN apk add curl
 
 WORKDIR /app
 COPY --from=builder /app/dockdns /usr/bin/dockdns
