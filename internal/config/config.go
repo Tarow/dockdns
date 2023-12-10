@@ -27,8 +27,8 @@ type Provider struct {
 type DNS struct {
 	EnableIP4    bool `yaml:"a"`
 	EnableIP6    bool `yaml:"aaaa"`
-	TTL          uint `yaml:"ttl"`
-	PurgeUnknown bool `yaml:"purgeUnknown"`
+	TTL          uint `yaml:"ttl" env-default:"600"`
+	PurgeUnknown bool `yaml:"purgeUnknown" env-default:"false"`
 }
 
 type Domains []DomainRecord
@@ -37,7 +37,7 @@ type DomainRecord struct {
 	Name    string `yaml:"name" label:"dockdns.name"`
 	IP4     string `yaml:"a" label:"dockdns.a"`
 	IP6     string `yaml:"aaaa" label:"dockdns.aaaa"`
-	Proxied string `yaml:"dockdns.proxied"`
+	Proxied *bool  `yaml:"dockdns.proxied"`
 }
 
 func (d DomainRecord) GetIP(recordType string) string {
