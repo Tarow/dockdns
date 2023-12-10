@@ -29,8 +29,8 @@ type Record struct {
 	Name    string
 	IP      string
 	Type    string
-	Proxied *bool
-	TTL     uint
+	Proxied bool
+	TTL     int
 }
 
 func NewHandler(provider Provider, dnsDefaultCfg config.DNS,
@@ -87,6 +87,9 @@ func (h handler) Run() error {
 		h.setIPs(allDomains, publicIp4, publicIp6)
 		slog.Debug("set missing IPs", "domains", allDomains)
 
+		h.applyDefaults(allDomains)
+		slog.Debug("applied default values", "domains", allDomains)
+
 		h.updateRecords(allDomains, publicIp4, publicIp6)
 	} else {
 		slog.Info("Found no records to update")
@@ -106,6 +109,15 @@ func (h handler) setIPs(domains []config.DomainRecord, publicIp4, publicIp6 stri
 		}
 		if strings.TrimSpace(domain.IP6) == "" && h.dnsCfg.EnableIP6 {
 			domain.IP6 = publicIp6
+		}
+		domains[i] = domain
+	}
+}
+
+func (h handler) applyDefaults(domains []config.DomainRecord) {
+	for i, domain := range domains {
+		if domain.TTL == 0 {
+			domain.TTL = h.dnsCfg.DefaultTTL
 		}
 		domains[i] = domain
 	}

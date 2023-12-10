@@ -85,10 +85,11 @@ func (cfp cloudflareProvider) Get(domain, recordType string) (dns.Record, error)
 
 func (cfp cloudflareProvider) Create(record dns.Record) (dns.Record, error) {
 	createdRecord, err := cfp.api.CreateDNSRecord(context.Background(), cfp.zoneID, cloudflare.CreateDNSRecordParams{
-		Type:    record.Type,
 		Name:    record.Name,
-		Content: record.IP,
+		Type:    record.Type,
+		Proxied: &record.Proxied,
 		TTL:     int(record.TTL),
+		Content: record.IP,
 	})
 
 	if err != nil {
@@ -101,8 +102,8 @@ func (cfp cloudflareProvider) Update(record dns.Record) (dns.Record, error) {
 	updatedRecord, err := cfp.api.UpdateDNSRecord(context.Background(), cfp.zoneID, cloudflare.UpdateDNSRecordParams{
 		ID:      record.ID,
 		Type:    record.Type,
-		Proxied: record.Proxied,
-		TTL:     int(record.TTL),
+		Proxied: &record.Proxied,
+		TTL:     record.TTL,
 		Content: record.IP,
 	})
 
@@ -127,12 +128,16 @@ func mapRecords(records []cloudflare.DNSRecord) []dns.Record {
 }
 
 func mapRecord(r cloudflare.DNSRecord) dns.Record {
+	var proxied bool
+	if r.Proxied != nil {
+		proxied = *r.Proxied
+	}
 	return dns.Record{
 		ID:      r.ID,
 		Name:    r.Name,
 		Type:    r.Type,
 		IP:      r.Content,
-		Proxied: r.Proxied,
-		TTL:     uint(r.TTL),
+		Proxied: proxied,
+		TTL:     r.TTL,
 	}
 }

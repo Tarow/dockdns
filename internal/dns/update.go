@@ -26,8 +26,8 @@ func (h handler) updateRecord(domain config.DomainRecord, recordType string) {
 		slog.Error("failed to fetch existing record", "name", domain.Name, "type", recordType, "action", "skip record")
 		return
 	}
-	if existingRecord.IP == domain.GetIP(recordType) {
-		slog.Debug("No IP change detected, skipping update", "name", domain.Name, "type", recordType)
+	if isEqual(existingRecord, domain, recordType) {
+		slog.Debug("No change detected, skipping update", "name", domain.Name, "type", recordType)
 		return
 	}
 
@@ -39,7 +39,7 @@ func (h handler) updateRecord(domain config.DomainRecord, recordType string) {
 			slog.Error("failed to create record", "record", newRecord, "error", err)
 			return
 		}
-		slog.Info("Successfully created new record", "name", updatedRecord.Name, "ip", updatedRecord.IP, "type", updatedRecord.Type)
+		slog.Info("Successfully created new record", "name", updatedRecord.Name, "ip", updatedRecord.IP, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
 	} else {
 		newRecord.ID = existingRecord.ID
 		updatedRecord, err = h.provider.Update(newRecord)
@@ -47,7 +47,7 @@ func (h handler) updateRecord(domain config.DomainRecord, recordType string) {
 			slog.Error("failed to update record", "record", newRecord, "error", err)
 			return
 		}
-		slog.Info("Successfully updated record", "name", updatedRecord.Name, "ip", updatedRecord.IP, "type", updatedRecord.Type)
+		slog.Info("Successfully updated record", "name", updatedRecord.Name, "ip", updatedRecord.IP, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
 	}
 
 }
@@ -57,7 +57,30 @@ func createRecord(domain config.DomainRecord, dnsCfg config.DNS, recordType stri
 		Name:    domain.Name,
 		IP:      domain.GetIP(recordType),
 		Type:    recordType,
-		TTL:     dnsCfg.TTL,
+		TTL:     domain.TTL,
 		Proxied: domain.Proxied,
 	}
+}
+
+func isEqual(record Record, domain config.DomainRecord, recordType string) bool {
+	ip := domain.GetIP(recordType)
+
+	if record.IP != ip {
+		return false
+	}
+
+	if record.Name != domain.Name {
+		return false
+	}
+
+	if record.Proxied != domain.Proxied {
+		return false
+	}
+
+	// If domain is proxied, TTL will be auto, dont compare it
+	if (!record.Proxied) && record.TTL != domain.TTL {
+		return false
+	}
+
+	return true
 }

@@ -57,7 +57,7 @@ func parseLabels(container types.Container, targetStruct *config.DomainRecord) e
 
 		if label != "" {
 			labelValue, exists := containerLabels[label]
-			if exists {
+			if exists && labelValue != "" {
 				targetField := targetValue.Elem().Field(i)
 				if err := setFieldValue(targetField, labelValue); err != nil {
 					return fmt.Errorf("could not parse label value, label: %v, value: %v, error: %w", label, labelValue, err)
