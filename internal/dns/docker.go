@@ -3,7 +3,9 @@ package dns
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"reflect"
+	"strconv"
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/docker/docker/api/types"
@@ -14,7 +16,6 @@ const dockdnsNameLabel = "dockdns.name"
 
 func (h handler) filterDockerLabels() ([]config.DomainRecord, error) {
 	containers, err := h.dockerCli.ContainerList(context.Background(), types.ContainerListOptions{
-		All:     true,
 		Filters: filters.NewArgs(filters.Arg("label", dockdnsNameLabel)),
 	})
 	if err != nil {
@@ -31,7 +32,8 @@ func parseContainerLabels(containers []types.Container) ([]config.DomainRecord, 
 		var record config.DomainRecord
 		err := parseLabels(container, &record)
 		if err != nil {
-			return nil, err
+			slog.Warn("error parsing label configuration, skipping container", "container", container.Names, "error", err)
+			continue
 		}
 
 		labelRecords = append(labelRecords, record)
@@ -57,9 +59,46 @@ func parseLabels(container types.Container, targetStruct *config.DomainRecord) e
 			labelValue, exists := containerLabels[label]
 			if exists {
 				targetField := targetValue.Elem().Field(i)
-				targetField.SetString(labelValue)
+				if err := setFieldValue(targetField, labelValue); err != nil {
+					return fmt.Errorf("could not parse label value, label: %v, value: %v, error: %w", label, labelValue, err)
+				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func setFieldValue(field reflect.Value, labelValue string) error {
+	if field.Kind() == reflect.Ptr {
+		// If the field is a pointer, create a new instance of the underlying type and set the value
+		if field.IsNil() {
+			field.Set(reflect.New(field.Type().Elem()))
+		}
+		field = field.Elem()
+	}
+
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(labelValue)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		intValue, err := strconv.ParseInt(labelValue, 10, 64)
+		if err != nil {
+			return err
+		}
+		field.SetInt(intValue)
+	case reflect.Bool:
+		boolValue, err := strconv.ParseBool(labelValue)
+		if err != nil {
+			return err
+		}
+		field.SetBool(boolValue)
+	case reflect.Uint8:
+		byteValue := []byte(labelValue)
+		field.SetBytes(byteValue)
+
+	default:
+		return fmt.Errorf("unsupported field type: %v", field.Kind())
 	}
 
 	return nil

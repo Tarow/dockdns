@@ -39,7 +39,7 @@ type DomainRecord struct {
 	Name    string `yaml:"name" label:"dockdns.name"`
 	IP4     string `yaml:"a" label:"dockdns.a"`
 	IP6     string `yaml:"aaaa" label:"dockdns.aaaa"`
-	Proxied *bool  `yaml:"dockdns.proxied"`
+	Proxied *bool  `yaml:"proxied" label:"dockdns.proxied"`
 }
 
 func (d DomainRecord) GetIP(recordType string) string {
