@@ -2,9 +2,10 @@ version: "3.7"
 
 services:
   dockdns:
-    image: ghcr.io/tarow/dockdns:main
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../config.yaml:/app/config.yaml
-  
