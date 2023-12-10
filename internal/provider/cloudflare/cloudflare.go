@@ -36,7 +36,7 @@ func (cfp cloudflareProvider) List() ([]dns.Record, error) {
 		return nil, err
 	}
 
-	ip6Records, err := cfp.list(constants.RecordTypeA)
+	ip6Records, err := cfp.list(constants.RecordTypeAAAA)
 	if err != nil {
 		return nil, err
 	}
