@@ -18,7 +18,7 @@ type handler struct {
 
 type Provider interface {
 	List() ([]Record, error)
-	Get(name, recordType string) (Record, error)
+	Get(name string, recordType string) (Record, error)
 	Create(record Record) (Record, error)
 	Update(record Record) (Record, error)
 	Delete(record Record) error
@@ -32,11 +32,6 @@ type Record struct {
 	Proxied *bool
 	TTL     uint
 }
-
-type RecordType string
-
-const TypeA = "A"
-const TypeAAAA = "AAAA"
 
 func NewHandler(provider Provider, dnsDefaultCfg config.DNS,
 	staticDomains config.Domains, dockerCli *client.Client) handler {

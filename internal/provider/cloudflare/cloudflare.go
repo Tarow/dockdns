@@ -3,6 +3,7 @@ package cloudflare
 import (
 	"context"
 
+	"github.com/Tarow/dockdns/internal/constants"
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/cloudflare/cloudflare-go"
 )
@@ -30,12 +31,12 @@ func New(apiToken, zoneId string) (cloudflareProvider, error) {
 }
 
 func (cfp cloudflareProvider) List() ([]dns.Record, error) {
-	ip4Records, err := cfp.list(dns.TypeA)
+	ip4Records, err := cfp.list(constants.RecordTypeA)
 	if err != nil {
 		return nil, err
 	}
 
-	ip6Records, err := cfp.list(dns.TypeAAAA)
+	ip6Records, err := cfp.list(constants.RecordTypeA)
 	if err != nil {
 		return nil, err
 	}

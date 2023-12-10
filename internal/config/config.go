@@ -1,5 +1,7 @@
 package config
 
+import "github.com/Tarow/dockdns/internal/constants"
+
 type AppConfig struct {
 	Interval uint      `yaml:"interval" env-default:"600"`
 	Log      LogConfig `yaml:"log"`
@@ -41,7 +43,7 @@ type DomainRecord struct {
 }
 
 func (d DomainRecord) GetIP(recordType string) string {
-	if recordType == "A" {
+	if recordType == constants.RecordTypeA {
 		return d.IP4
 	} else {
 		return d.IP6

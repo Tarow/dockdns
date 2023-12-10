@@ -2,20 +2,20 @@ package dns
 
 import (
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/Tarow/dockdns/internal/config"
+	"github.com/Tarow/dockdns/internal/constants"
 )
 
 func (h handler) updateRecords(domains []config.DomainRecord, publicIp4, publicIp6 string) {
 	for _, domain := range domains {
 		if strings.TrimSpace(domain.IP4) != "" && h.dnsCfg.EnableIP4 {
-			h.updateRecord(domain, TypeA)
+			h.updateRecord(domain, constants.RecordTypeA)
 		}
 
 		if strings.TrimSpace(domain.IP6) != "" && h.dnsCfg.EnableIP6 {
-			h.updateRecord(domain, TypeAAAA)
+			h.updateRecord(domain, constants.RecordTypeAAAA)
 		}
 	}
 }
@@ -53,12 +53,11 @@ func (h handler) updateRecord(domain config.DomainRecord, recordType string) {
 }
 
 func createRecord(domain config.DomainRecord, dnsCfg config.DNS, recordType string) Record {
-	proxied, _ := strconv.ParseBool(domain.Proxied)
 	return Record{
 		Name:    domain.Name,
 		IP:      domain.GetIP(recordType),
 		Type:    recordType,
 		TTL:     dnsCfg.TTL,
-		Proxied: &proxied,
+		Proxied: domain.Proxied,
 	}
 }

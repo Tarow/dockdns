@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/Tarow/dockdns/internal/config"
+	"github.com/Tarow/dockdns/internal/constants"
 )
 
 func (h handler) purgeUnknownRecords(domains []config.DomainRecord) {
@@ -28,10 +29,10 @@ func (h handler) purgeUnknownRecords(domains []config.DomainRecord) {
 func containsRecord(domains []config.DomainRecord, toCheck Record, dnsCfg config.DNS) bool {
 	for _, domain := range domains {
 		if domain.Name == toCheck.Name {
-			if dnsCfg.EnableIP4 && toCheck.Type == TypeA {
+			if dnsCfg.EnableIP4 && toCheck.Type == constants.RecordTypeA {
 				return true
 			}
-			if dnsCfg.EnableIP6 && toCheck.Type == TypeAAAA {
+			if dnsCfg.EnableIP6 && toCheck.Type == constants.RecordTypeAAAA {
 				return true
 			}
 		}
