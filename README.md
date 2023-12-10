@@ -18,7 +18,7 @@ interval: 300 # The update interval in seconds
 
 log:
   level: debug # Optional, Log level, one of 'debug', 'info', 'warn' or 'error'. Defaults to 'info'
-  format: simple # Output of the log format, 'simple' or 'json'. Defaults to 'simple'
+  format: simple # Optional, output of the log format, 'simple' or 'json'. Defaults to 'simple'
 
 provider:
   name: cloudflare # Name of the provider. Currently only Cloudflare is supported
@@ -28,8 +28,8 @@ provider:
 dns:
   a: true # Update IPv4 addresses
   aaaa: false # Update IPv6 addresses
-  defaultTTL: 300 # Default TTL for all records. Defaults to 600
-  purgeUnknown: true # Delete unknown records
+  defaultTTL: 300 # Optional, default TTL for all records. Defaults to 600
+  purgeUnknown: true # Optional, delete unknown records. Defaults to false.
 
 ## Static domain configuration (optional)
 domains:
