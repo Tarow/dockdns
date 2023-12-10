@@ -53,9 +53,13 @@ func (h handler) Run() error {
 	staticDomains := h.staticDomains
 	slog.Debug("static config", "domains", staticDomains)
 
-	dockerDomains, err := h.filterDockerLabels()
+	var dockerDomains []config.DomainRecord
+	var err error
+	if h.dockerCli != nil {
+		dockerDomains, err = h.filterDockerLabels()
+	}
 	if err != nil {
-		slog.Error("Could not fetch domains from docker labels, ignoring label configuration", "error", err)
+		slog.Error("could not fetch domains from docker labels, ignoring label configuration", "error", err)
 	} else {
 		slog.Debug("dynamic docker config", "domains", dockerDomains)
 	}

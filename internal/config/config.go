@@ -1,10 +1,21 @@
 package config
 
 type AppConfig struct {
-	Interval uint     `yaml:"interval"`
-	Provider Provider `yaml:"provider"`
-	DNS      DNS      `yaml:"dns"`
-	Domains  Domains  `yaml:"domains"`
+	Interval uint      `yaml:"interval" env-default:"600"`
+	Log      LogConfig `yaml:"log"`
+	Provider Provider  `yaml:"provider"`
+	DNS      DNS       `yaml:"dns"`
+	Domains  Domains   `yaml:"domains"`
+}
+
+type LogFormat string
+
+const LogFormatSimple = "simple"
+const LogFormatJson = "json"
+
+type LogConfig struct {
+	Level  string    `yaml:"level" env-default:"info"`
+	Format LogFormat `yaml:"format" env-default:"simple"`
 }
 
 type Provider struct {

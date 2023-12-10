@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,17 +22,13 @@ func main() {
 	flag.StringVar(&configPath, "config", "config.yaml", "Path to the configuration file")
 	flag.Parse()
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
-	}))
-	slog.SetDefault(logger)
-
 	var appCfg config.AppConfig
 	err := cleanenv.ReadConfig(configPath, &appCfg)
 	if err != nil {
 		slog.Error("Failed to read config", "path", configPath, "error", err)
 		os.Exit(1)
 	}
+	slog.SetDefault(getLogger(appCfg.Log))
 	slog.Debug("Successfully read config", "config", appCfg)
 
 	dnsProvider, err := provider.Get(appCfg.Provider)
@@ -42,14 +39,15 @@ func main() {
 
 	dockerCli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		slog.Error("Could not create docker client", "error", err)
+		dockerCli = nil
+		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
 	}
 
 	handler := dns.NewHandler(dnsProvider, appCfg.DNS, appCfg.Domains, dockerCli)
 
 	run := func() {
 		if err := handler.Run(); err != nil {
-			slog.Error("DNS handler exited with error", "error", err)
+			slog.Error("DNS update failed with error", "error", err)
 		}
 	}
 
@@ -65,5 +63,45 @@ func main() {
 			slog.Info("Received termination signal. Exiting...")
 			return
 		}
+	}
+}
+
+func getLogger(cfg config.LogConfig) *slog.Logger {
+	var logLevel = parseLogLevel(cfg.Level)
+	var handler slog.Handler
+	switch cfg.Format {
+	case config.LogFormatJson:
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: logLevel,
+		})
+	case config.LogFormatSimple:
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: logLevel,
+		})
+	default:
+		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: logLevel,
+		})
+	}
+
+	return slog.New(handler)
+}
+
+func parseLogLevel(logLevel string) slog.Level {
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		return slog.LevelDebug
+
+	case "info":
+		return slog.LevelInfo
+
+	case "warn":
+		return slog.LevelWarn
+
+	case "error":
+		return slog.LevelError
+
+	default:
+		return slog.LevelInfo
 	}
 }
