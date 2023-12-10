@@ -69,17 +69,18 @@ func main() {
 func getLogger(cfg config.LogConfig) *slog.Logger {
 	var logLevel = parseLogLevel(cfg.Level)
 	var handler slog.Handler
+
 	switch cfg.Format {
 	case config.LogFormatJson:
 		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 			Level: logLevel,
 		})
 	case config.LogFormatSimple:
-		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: logLevel,
 		})
 	default:
-		handler = slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		handler = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			Level: logLevel,
 		})
 	}
