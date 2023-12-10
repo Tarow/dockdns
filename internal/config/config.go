@@ -29,7 +29,7 @@ type Provider struct {
 type DNS struct {
 	EnableIP4    bool `yaml:"a"`
 	EnableIP6    bool `yaml:"aaaa"`
-	DefaultTTL   int  `yaml:"defaultTTL" env-default:"600"`
+	DefaultTTL   int  `yaml:"defaultTTL" env-default:"300"`
 	PurgeUnknown bool `yaml:"purgeUnknown" env-default:"false"`
 }
 

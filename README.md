@@ -14,7 +14,7 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 The app configuration as well as the static domain entries are read from a configuration file (see [example configuration](config.example.yaml)).
 
 ```yaml
-interval: 300 # The update interval in seconds
+interval: 600 # Optional, the update interval in seconds. Defaults to 600
 
 log:
   level: debug # Optional, Log level, one of 'debug', 'info', 'warn' or 'error'. Defaults to 'info'
@@ -28,10 +28,10 @@ provider:
 dns:
   a: true # Update IPv4 addresses
   aaaa: false # Update IPv6 addresses
-  defaultTTL: 300 # Optional, default TTL for all records. Defaults to 600
+  defaultTTL: 300 # Optional, default TTL for all records. Defaults to 300
   purgeUnknown: true # Optional, delete unknown records. Defaults to false.
 
-## Static domain configuration (optional)
+# Static domain configuration (optional)
 domains:
   - name: "*.somedomain.com"
 

@@ -9,27 +9,19 @@ import (
 	"github.com/Tarow/dockdns/internal/provider/cloudflare"
 )
 
-type Provider interface {
-	List() ([]dns.Record, error)
-	Get(name, recordType string) (dns.Record, error)
-	Create(record dns.Record) (dns.Record, error)
-	Update(record dns.Record) (dns.Record, error)
-	Delete(record dns.Record) error
-}
-
 const (
 	Cloudflare = "cloudflare"
 )
 
-type ProviderCreator func(config.Provider) (Provider, error)
+type ProviderCreator func(config.Provider) (dns.Provider, error)
 
-var providers = map[string]func(config.Provider) (Provider, error){
-	Cloudflare: func(providerCfg config.Provider) (Provider, error) {
+var providers = map[string]func(config.Provider) (dns.Provider, error){
+	Cloudflare: func(providerCfg config.Provider) (dns.Provider, error) {
 		return cloudflare.New(providerCfg.ApiToken, providerCfg.ZoneID)
 	},
 }
 
-func Get(providerCfg config.Provider) (Provider, error) {
+func Get(providerCfg config.Provider) (dns.Provider, error) {
 	if providerCfg.Name == "" {
 		return nil, errors.New("no DNS provider specified")
 	}
