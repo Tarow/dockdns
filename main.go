@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -54,6 +55,7 @@ func main() {
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
 
+	slog.Info(fmt.Sprintf("Updating DNS entries every %v seconds", appCfg.Interval))
 	run()
 	for {
 		select {
