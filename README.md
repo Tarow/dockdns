@@ -10,6 +10,7 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 - Static DNS record configuration based on a config file
 - Dynamic DNS record configuration based on Docker labels
 - IPv4 & IPv6 support
+- Supports multiple zones
 
 ## Configuration
 
@@ -61,13 +62,13 @@ If no explicit IP address is set, the public IP will be fetched and set automati
 
 ## Installation
 
-### Go Binary
+### Go install
 
 ```
 go install github.com/Tarow/dockdns@latest
 ```
 
-Be default, DockDNS looks for a `config.yaml` in the current folder. The location of the configuration file can be overwritten by providing the `-config` flag:
+By default, DockDNS looks for a `config.yaml` in the current folder. The location of the configuration file can be overwritten using the `-config` flag:
 
 ```
 dockdns -config /path/to/config.yaml
