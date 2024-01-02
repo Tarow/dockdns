@@ -8,20 +8,20 @@ import (
 	"github.com/Tarow/dockdns/internal/constants"
 )
 
-func (h handler) updateRecords(domains []config.DomainRecord, publicIp4, publicIp6 string) {
+func (h handler) updateRecords(provider Provider, domains []config.DomainRecord) {
 	for _, domain := range domains {
 		if strings.TrimSpace(domain.IP4) != "" && h.dnsCfg.EnableIP4 {
-			h.updateRecord(domain, constants.RecordTypeA)
+			h.updateRecord(provider, domain, constants.RecordTypeA)
 		}
 
 		if strings.TrimSpace(domain.IP6) != "" && h.dnsCfg.EnableIP6 {
-			h.updateRecord(domain, constants.RecordTypeAAAA)
+			h.updateRecord(provider, domain, constants.RecordTypeAAAA)
 		}
 	}
 }
 
-func (h handler) updateRecord(domain config.DomainRecord, recordType string) {
-	existingRecord, err := h.provider.Get(domain.Name, recordType)
+func (h handler) updateRecord(provider Provider, domain config.DomainRecord, recordType string) {
+	existingRecord, err := provider.Get(domain.Name, recordType)
 	if err != nil {
 		slog.Error("failed to fetch existing record", "name", domain.Name, "type", recordType, "action", "skip record")
 		return
@@ -34,7 +34,7 @@ func (h handler) updateRecord(domain config.DomainRecord, recordType string) {
 	newRecord := createRecord(domain, h.dnsCfg, recordType)
 	var updatedRecord Record
 	if existingRecord.ID == "" {
-		updatedRecord, err = h.provider.Create(newRecord)
+		updatedRecord, err = provider.Create(newRecord)
 		if err != nil {
 			slog.Error("failed to create record", "record", newRecord, "error", err)
 			return
@@ -42,7 +42,7 @@ func (h handler) updateRecord(domain config.DomainRecord, recordType string) {
 		slog.Info("Successfully created new record", "name", updatedRecord.Name, "ip", updatedRecord.IP, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
 	} else {
 		newRecord.ID = existingRecord.ID
-		updatedRecord, err = h.provider.Update(newRecord)
+		updatedRecord, err = provider.Update(newRecord)
 		if err != nil {
 			slog.Error("failed to update record", "record", newRecord, "error", err)
 			return

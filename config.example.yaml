@@ -4,10 +4,11 @@ log:
   level: debug
   format: simple
 
-provider:
-  name: cloudflare
-  apiToken: ...
-  zoneID: ...
+zones:
+  - name: somedomain.com
+    provider: cloudflare
+    apiToken: ...
+    zoneID: ...
 
 dns:
   a: true

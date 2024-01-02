@@ -7,8 +7,8 @@ import (
 	"github.com/Tarow/dockdns/internal/constants"
 )
 
-func (h handler) purgeUnknownRecords(domains []config.DomainRecord) {
-	existingRecords, err := h.provider.List()
+func (h handler) purgeUnknownRecords(provider Provider, domains []config.DomainRecord) {
+	existingRecords, err := provider.List()
 	if err != nil {
 		slog.Error("failed to fetch existing records, skipping purge", "error", err)
 		return
@@ -16,7 +16,7 @@ func (h handler) purgeUnknownRecords(domains []config.DomainRecord) {
 
 	for _, record := range existingRecords {
 		if !containsRecord(domains, record, h.dnsCfg) {
-			if err := h.provider.Delete(record); err != nil {
+			if err := provider.Delete(record); err != nil {
 				slog.Error("failed to purge record", "name", record.Name, "type", record.Type, "error", err)
 			} else {
 				slog.Info("successfully purged unknown record", "name", record.Name, "type", record.Type)

@@ -5,7 +5,7 @@ import "github.com/Tarow/dockdns/internal/constants"
 type AppConfig struct {
 	Interval uint      `yaml:"interval" env-default:"600"`
 	Log      LogConfig `yaml:"log"`
-	Provider Provider  `yaml:"provider"`
+	Zones    Zones     `yaml:"zones"`
 	DNS      DNS       `yaml:"dns"`
 	Domains  Domains   `yaml:"domains"`
 }
@@ -20,7 +20,9 @@ type LogConfig struct {
 	Format LogFormat `yaml:"format" env-default:"simple"`
 }
 
-type Provider struct {
+type Zones []Zone
+type Zone struct {
+	Provider string `yaml:"provider"`
 	Name     string `yaml:"name"`
 	ApiToken string `yaml:"apiToken"`
 	ZoneID   string `yaml:"zoneID"`
@@ -34,7 +36,6 @@ type DNS struct {
 }
 
 type Domains []DomainRecord
-
 type DomainRecord struct {
 	Name    string `yaml:"name" label:"dockdns.name"`
 	IP4     string `yaml:"a" label:"dockdns.a"`

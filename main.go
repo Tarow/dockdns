@@ -32,10 +32,14 @@ func main() {
 	slog.SetDefault(getLogger(appCfg.Log))
 	slog.Debug("Successfully read config", "config", appCfg)
 
-	dnsProvider, err := provider.Get(appCfg.Provider)
-	if err != nil {
-		slog.Error("Failed to create DNS provider", "error", err)
-		os.Exit(1)
+	providers := map[string]dns.Provider{}
+	for _, zone := range appCfg.Zones {
+		dnsProvider, err := provider.Get(zone)
+		if err != nil {
+			slog.Error("Failed to create DNS provider", "zone", zone.Name, "error", err)
+			os.Exit(1)
+		}
+		providers[zone.Name] = dnsProvider
 	}
 
 	dockerCli, err := client.NewClientWithOpts(client.FromEnv)
@@ -44,7 +48,7 @@ func main() {
 		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
 	}
 
-	handler := dns.NewHandler(dnsProvider, appCfg.DNS, appCfg.Domains, dockerCli)
+	handler := dns.NewHandler(providers, appCfg.DNS, appCfg.Domains, dockerCli)
 
 	run := func() {
 		if err := handler.Run(); err != nil {

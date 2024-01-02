@@ -13,23 +13,23 @@ const (
 	Cloudflare = "cloudflare"
 )
 
-type ProviderCreator func(config.Provider) (dns.Provider, error)
+type ProviderCreator func(config.Zone) (dns.Provider, error)
 
-var providers = map[string]func(config.Provider) (dns.Provider, error){
-	Cloudflare: func(providerCfg config.Provider) (dns.Provider, error) {
-		return cloudflare.New(providerCfg.ApiToken, providerCfg.ZoneID)
+var providers = map[string]func(config.Zone) (dns.Provider, error){
+	Cloudflare: func(zoneCfg config.Zone) (dns.Provider, error) {
+		return cloudflare.New(zoneCfg.ApiToken, zoneCfg.ZoneID)
 	},
 }
 
-func Get(providerCfg config.Provider) (dns.Provider, error) {
-	if providerCfg.Name == "" {
+func Get(zoneCfg config.Zone) (dns.Provider, error) {
+	if zoneCfg.Provider == "" {
 		return nil, errors.New("no DNS provider specified")
 	}
 
-	providerCreator, exists := providers[providerCfg.Name]
+	providerCreator, exists := providers[zoneCfg.Provider]
 	if !exists {
-		return nil, fmt.Errorf("invalid provider: %s", providerCfg.Name)
+		return nil, fmt.Errorf("invalid provider: %s", zoneCfg.Provider)
 	}
 
-	return providerCreator(providerCfg)
+	return providerCreator(zoneCfg)
 }

@@ -10,7 +10,7 @@ import (
 )
 
 type handler struct {
-	provider      Provider
+	providers     map[string]Provider
 	dnsCfg        config.DNS
 	staticDomains config.Domains
 	dockerCli     *client.Client
@@ -33,10 +33,10 @@ type Record struct {
 	TTL     int
 }
 
-func NewHandler(provider Provider, dnsDefaultCfg config.DNS,
+func NewHandler(providers map[string]Provider, dnsDefaultCfg config.DNS,
 	staticDomains config.Domains, dockerCli *client.Client) handler {
 	return handler{
-		provider:      provider,
+		providers:     providers,
 		dnsCfg:        dnsDefaultCfg,
 		staticDomains: staticDomains,
 		dockerCli:     dockerCli,
@@ -60,7 +60,7 @@ func (h handler) Run() error {
 	}
 
 	allDomains := removeDuplicates(staticDomains, dockerDomains)
-	slog.Debug("removed duplicates", "domains", allDomains)
+	slog.Debug("removed duplicates", "deduped", allDomains)
 
 	if len(allDomains) > 0 {
 		var publicIp4, publicIp6 string
@@ -90,13 +90,26 @@ func (h handler) Run() error {
 		h.applyDefaults(allDomains)
 		slog.Debug("applied default values", "domains", allDomains)
 
-		h.updateRecords(allDomains, publicIp4, publicIp6)
+		if err != nil {
+			slog.Error("could not group domains by zone", "error", err)
+			return err
+		}
 	} else {
 		slog.Info("Found no records to update")
 	}
 
-	if h.dnsCfg.PurgeUnknown {
-		h.purgeUnknownRecords(allDomains)
+	for zone, provider := range h.providers {
+		domains := filterDomains(allDomains, zone)
+
+		slog.Debug("starting update", "zone", zone, "domains", domains)
+		h.updateRecords(provider, domains)
+		slog.Debug("finished update", "zone", zone, "domains", domains)
+
+		if h.dnsCfg.PurgeUnknown {
+			slog.Debug("starting purge of unknown domains", "zone", zone, "domains", domains)
+			h.purgeUnknownRecords(provider, domains)
+			slog.Debug("finished purge of unknown domains", "zone", zone, "domains", domains)
+		}
 	}
 
 	return nil
@@ -133,6 +146,18 @@ func removeDuplicates(staticDomains, dockerDomains []config.DomainRecord) []conf
 			result = append(result, dockerDomain)
 		}
 	}
+	return result
+}
+
+func filterDomains(allDomains config.Domains, zoneName string) config.Domains {
+	var result config.Domains
+
+	for _, domain := range allDomains {
+		if strings.HasSuffix(domain.Name, zoneName) {
+			result = append(result, domain)
+		}
+	}
+
 	return result
 }
 
