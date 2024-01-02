@@ -32,6 +32,10 @@ func main() {
 	slog.SetDefault(getLogger(appCfg.Log))
 	slog.Debug("Successfully read config", "config", appCfg)
 
+	if !(len(appCfg.Zones) > 0) {
+		slog.Error("no zone configuration found, exiting")
+		os.Exit(1)
+	}
 	providers := map[string]dns.Provider{}
 	for _, zone := range appCfg.Zones {
 		dnsProvider, err := provider.Get(zone)
