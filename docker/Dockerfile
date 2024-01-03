@@ -8,6 +8,8 @@ RUN go mod download
 
 COPY main.go .
 COPY internal/ internal/
+COPY templates/ templates/
+COPY static/ static/
 
 RUN CGO_ENABLED=0 go build
 
