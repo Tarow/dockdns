@@ -1,7 +1,71 @@
 package template
 
-templ Index() {
+import "github.com/Tarow/dockdns/internal/config"
+import "time"
+import "github.com/Tarow/dockdns/templates/components"
+import "fmt"
+
+templ Navbar(dnsCfg config.DNS, lastUpdate time.Time) {
+	<nav class="bg-white border-gray-200 dark:bg-gray-900">
+		<div class="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+			<a href="https://github.com/Tarow/dockdns" target="_blank" class="flex items-center space-x-3 rtl:space-x-reverse">
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="stroke-white w-6 h-6">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418"></path>
+				</svg>
+				<span class="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">DockDNS</span>
+			</a>
+			<dl class="flex flex-row text-white gap-4">
+				<div class="flex flex-col items-center justify-center">
+					<dt>
+						@BoolIcon(dnsCfg.EnableIP4)
+					</dt>
+					<dd class="text-gray-500 dark:text-gray-400">IPv4</dd>
+				</div>
+				<div class="flex flex-col items-center justify-center">
+					<dt>
+						@BoolIcon(dnsCfg.EnableIP6)
+					</dt>
+					<dd class="text-gray-500 dark:text-gray-400">IPv6</dd>
+				</div>
+				<div class="flex flex-col items-center justify-center">
+					<dt>{ fmt.Sprintf("%v", dnsCfg.DefaultTTL) }</dt>
+					<dd class="text-gray-500 dark:text-gray-400">Default TTL</dd>
+				</div>
+				<div class="flex flex-col items-center justify-center">
+					<dt>
+						@BoolIcon(dnsCfg.PurgeUnknown)
+					</dt>
+					<dd class="text-gray-500 dark:text-gray-400">Purge Unknown</dd>
+				</div>
+				<div class="flex flex-col items-center justify-center">
+					<dt>{ lastUpdate.Format("2006-01-02 15:04:05") }</dt>
+					<dd class="text-gray-500 dark:text-gray-400">Last Update</dd>
+				</div>
+			</dl>
+		</div>
+	</nav>
+}
+
+templ BoolIcon(b bool) {
+	if b {
+		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+			<path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+		</svg>
+	} else {
+		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+			<path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+		</svg>
+	}
+}
+
+templ Index(dnsConfig config.DNS, domains config.Domains, lastUpdate time.Time) {
 	@Base() {
-		<div>Placeholder TODO</div>
+		<div hx-get="/" hx-swap="outerHTML" hx-target="#content" hx-trigger="every 30s"></div>
+		<div class="container mx-auto">
+			@Navbar(dnsConfig, lastUpdate)
+			<div class="mx-auto">
+				@component.DomainList(domains)
+			</div>
+		</div>
 	}
 }

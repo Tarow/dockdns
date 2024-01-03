@@ -66,7 +66,7 @@ func main() {
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
 
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(1)
 	ctx, cancel := context.WithCancel(context.Background())
 
 	//run the dns handler
@@ -90,24 +90,28 @@ func main() {
 		}
 	}()
 
-	// Run the API server
-	indexHandler := api.GetIndex
-	mux := http.NewServeMux()
-	mux.Handle("/static/", http.FileServer(http.FS(staticAssets)))
-	mux.HandleFunc("/", indexHandler)
-	server := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
-	}
-	go func() {
-		defer wg.Done()
-		slog.Info("Starting API server")
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			slog.Error("HTTP server error: %v\n", err)
-		} else {
-			slog.Info("Received shutdown signal, shutting down API server ...")
+	var server *http.Server
+	if appCfg.WebUI {
+		slog.Info("WebUI enabled, starting server ...")
+		// Run the API server
+		apiHandler := api.NewHandler(&dnsHandler)
+		mux := http.NewServeMux()
+		mux.Handle("/static/", http.FileServer(http.FS(staticAssets)))
+		mux.HandleFunc("/", apiHandler.GetIndex)
+		server = &http.Server{
+			Addr:    ":8080",
+			Handler: mux,
 		}
-	}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := server.ListenAndServe(); err != http.ErrServerClosed {
+				slog.Error("HTTP server error: %v\n", err)
+			} else {
+				slog.Info("Received shutdown signal, shutting down API server ...")
+			}
+		}()
+	}
 
 	// wait for kill signal
 	<-signalCh
@@ -115,10 +119,11 @@ func main() {
 
 	// stop goroutines
 	cancel()
-	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelShutdown()
-	server.Shutdown(shutdownCtx)
-
+	if appCfg.WebUI {
+		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelShutdown()
+		server.Shutdown(shutdownCtx)
+	}
 	wg.Wait()
 	slog.Info("Stopped all goroutines, bye")
 }

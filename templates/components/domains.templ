@@ -1,0 +1,51 @@
+package component
+
+import "github.com/Tarow/dockdns/internal/config"
+import "fmt"
+
+templ DomainList(domains config.Domains) {
+	<div class="relative overflow-x-auto">
+		<table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+			<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+				<tr>
+					<th scope="col" class="px-6 py-3">
+						Domain
+					</th>
+					<th scope="col" class="px-6 py-3">
+						IPv4
+					</th>
+					<th scope="col" class="px-6 py-3">
+						IPv6
+					</th>
+					<th scope="col" class="px-6 py-3">
+						TTL
+					</th>
+					<th scope="col" class="px-6 py-3">
+						Proxied
+					</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, domain := range domains {
+					<tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+						<th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+							{ domain.Name }
+						</th>
+						<td class="px-6 py-4">
+							{ domain.IP4 }
+						</td>
+						<td class="px-6 py-4">
+							{ domain.IP6 }
+						</td>
+						<td class="px-6 py-4">
+							{ fmt.Sprintf("%v", domain.TTL) }
+						</td>
+						<td class="px-6 py-4">
+							{ fmt.Sprintf("%v", domain.Proxied) }
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}

@@ -10,11 +10,11 @@ import (
 
 func (h Handler) updateRecords(provider Provider, domains []config.DomainRecord) {
 	for _, domain := range domains {
-		if strings.TrimSpace(domain.IP4) != "" && h.dnsCfg.EnableIP4 {
+		if strings.TrimSpace(domain.IP4) != "" && h.DnsCfg.EnableIP4 {
 			h.updateRecord(provider, domain, constants.RecordTypeA)
 		}
 
-		if strings.TrimSpace(domain.IP6) != "" && h.dnsCfg.EnableIP6 {
+		if strings.TrimSpace(domain.IP6) != "" && h.DnsCfg.EnableIP6 {
 			h.updateRecord(provider, domain, constants.RecordTypeAAAA)
 		}
 	}
@@ -31,7 +31,7 @@ func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, rec
 		return
 	}
 
-	newRecord := createRecord(domain, h.dnsCfg, recordType)
+	newRecord := createRecord(domain, h.DnsCfg, recordType)
 	var updatedRecord Record
 	if existingRecord.ID == "" {
 		updatedRecord, err = provider.Create(newRecord)

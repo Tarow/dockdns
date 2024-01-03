@@ -15,7 +15,7 @@ func (h Handler) purgeUnknownRecords(provider Provider, domains []config.DomainR
 	}
 
 	for _, record := range existingRecords {
-		if !containsRecord(domains, record, h.dnsCfg) {
+		if !containsRecord(domains, record, h.DnsCfg) {
 			if err := provider.Delete(record); err != nil {
 				slog.Error("failed to purge record", "name", record.Name, "type", record.Type, "error", err)
 			} else {

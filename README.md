@@ -19,6 +19,8 @@ The app configuration as well as the static domain entries are read from a confi
 ```yaml
 interval: 600 # Optional, the update interval in seconds. Defaults to 600
 
+webUI: false # Optional, enables a WebUI (port 8080) that lists the scanned domains and current settings. Defaults to false
+
 log:
   level: debug # Optional, Log level, one of 'debug', 'info', 'warn' or 'error'. Defaults to 'info'
   format: simple # Optional, output of the log format, 'simple' or 'json'. Defaults to 'simple'
