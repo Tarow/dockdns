@@ -14,7 +14,7 @@ import (
 
 const dockdnsNameLabel = "dockdns.name"
 
-func (h handler) filterDockerLabels() ([]config.DomainRecord, error) {
+func (h Handler) filterDockerLabels() ([]config.DomainRecord, error) {
 	containers, err := h.dockerCli.ContainerList(context.Background(), types.ContainerListOptions{
 		Filters: filters.NewArgs(filters.Arg("label", dockdnsNameLabel)),
 	})

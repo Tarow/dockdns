@@ -5,11 +5,14 @@ TAGS               := latest
 
 all: clean install gen tidy build
 
-run:
+run: gen
 	go run main.go
 
-build:
+build: gen
 	go build -o bin/$(BINARY_NAME) main.go
+
+gen:
+	templ generate
 
 clean:
 	rm -f bin/*

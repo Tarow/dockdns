@@ -28,3 +28,6 @@ config.yaml
 
 # Compiled binaries
 bin/
+
+# Temporary files
+tmp/

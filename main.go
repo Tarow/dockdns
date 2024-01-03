@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
+	"embed"
 	"flag"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/Tarow/dockdns/internal/api"
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider"
@@ -18,6 +23,9 @@ import (
 )
 
 var configPath string
+
+//go:embed static/*
+var staticAssets embed.FS
 
 func main() {
 	flag.StringVar(&configPath, "config", "config.yaml", "Path to the configuration file")
@@ -52,28 +60,67 @@ func main() {
 		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
 	}
 
-	handler := dns.NewHandler(providers, appCfg.DNS, appCfg.Domains, dockerCli)
-
-	run := func() {
-		if err := handler.Run(); err != nil {
-			slog.Error("DNS update failed with error", "error", err)
-		}
-	}
+	dnsHandler := dns.NewHandler(providers, appCfg.DNS, appCfg.Domains, dockerCli)
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
 
-	slog.Info(fmt.Sprintf("Updating DNS entries every %v seconds", appCfg.Interval))
-	run()
-	for {
-		select {
-		case <-time.After(time.Duration(appCfg.Interval) * time.Second):
-			run()
-		case <-signalCh:
-			slog.Info("Received termination signal. Exiting...")
-			return
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	//run the dns handler
+	run := func() {
+		if err := dnsHandler.Run(); err != nil {
+			slog.Error("DNS update failed with error", "error", err)
 		}
 	}
+	go func() {
+		defer wg.Done()
+		slog.Info(fmt.Sprintf("Starting DNS updater, updating DNS entries every %v seconds", appCfg.Interval))
+		run()
+		for {
+			select {
+			case <-time.After(time.Duration(appCfg.Interval) * time.Second):
+				run()
+			case <-ctx.Done():
+				slog.Info("Received termination signal. Exiting DNS updater...")
+				return
+			}
+		}
+	}()
+
+	// Run the API server
+	indexHandler := api.GetIndex
+	mux := http.NewServeMux()
+	mux.Handle("/static/", http.FileServer(http.FS(staticAssets)))
+	mux.HandleFunc("/", indexHandler)
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: mux,
+	}
+	go func() {
+		defer wg.Done()
+		slog.Info("Starting API server")
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			slog.Error("HTTP server error: %v\n", err)
+		} else {
+			slog.Info("Received shutdown signal, shutting down API server ...")
+		}
+	}()
+
+	// wait for kill signal
+	<-signalCh
+	slog.Info("Received shutdown signal, shutting down goroutines")
+
+	// stop goroutines
+	cancel()
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancelShutdown()
+	server.Shutdown(shutdownCtx)
+
+	wg.Wait()
+	slog.Info("Stopped all goroutines, bye")
 }
 
 func getLogger(cfg config.LogConfig) *slog.Logger {

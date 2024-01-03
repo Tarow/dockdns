@@ -9,7 +9,7 @@ import (
 	"github.com/docker/docker/client"
 )
 
-type handler struct {
+type Handler struct {
 	providers     map[string]Provider
 	dnsCfg        config.DNS
 	staticDomains config.Domains
@@ -34,8 +34,8 @@ type Record struct {
 }
 
 func NewHandler(providers map[string]Provider, dnsDefaultCfg config.DNS,
-	staticDomains config.Domains, dockerCli *client.Client) handler {
-	return handler{
+	staticDomains config.Domains, dockerCli *client.Client) Handler {
+	return Handler{
 		providers:     providers,
 		dnsCfg:        dnsDefaultCfg,
 		staticDomains: staticDomains,
@@ -43,7 +43,7 @@ func NewHandler(providers map[string]Provider, dnsDefaultCfg config.DNS,
 	}
 }
 
-func (h handler) Run() error {
+func (h Handler) Run() error {
 	slog.Debug("starting dns update job")
 	staticDomains := h.staticDomains
 	slog.Debug("static config", "domains", staticDomains)
@@ -115,7 +115,7 @@ func (h handler) Run() error {
 	return nil
 }
 
-func (h handler) setIPs(domains []config.DomainRecord, publicIp4, publicIp6 string) {
+func (h Handler) setIPs(domains []config.DomainRecord, publicIp4, publicIp6 string) {
 	for i, domain := range domains {
 		if strings.TrimSpace(domain.IP4) == "" && h.dnsCfg.EnableIP4 {
 			domain.IP4 = publicIp4
@@ -127,7 +127,7 @@ func (h handler) setIPs(domains []config.DomainRecord, publicIp4, publicIp6 stri
 	}
 }
 
-func (h handler) applyDefaults(domains []config.DomainRecord) {
+func (h Handler) applyDefaults(domains []config.DomainRecord) {
 	for i, domain := range domains {
 		if domain.TTL == 0 {
 			domain.TTL = h.dnsCfg.DefaultTTL

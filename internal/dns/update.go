@@ -8,7 +8,7 @@ import (
 	"github.com/Tarow/dockdns/internal/constants"
 )
 
-func (h handler) updateRecords(provider Provider, domains []config.DomainRecord) {
+func (h Handler) updateRecords(provider Provider, domains []config.DomainRecord) {
 	for _, domain := range domains {
 		if strings.TrimSpace(domain.IP4) != "" && h.dnsCfg.EnableIP4 {
 			h.updateRecord(provider, domain, constants.RecordTypeA)
@@ -20,7 +20,7 @@ func (h handler) updateRecords(provider Provider, domains []config.DomainRecord)
 	}
 }
 
-func (h handler) updateRecord(provider Provider, domain config.DomainRecord, recordType string) {
+func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, recordType string) {
 	existingRecord, err := provider.Get(domain.Name, recordType)
 	if err != nil {
 		slog.Error("failed to fetch existing record", "name", domain.Name, "type", recordType, "action", "skip record")
