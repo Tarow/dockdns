@@ -9,13 +9,14 @@ import (
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 )
 
 const dockdnsNameLabel = "dockdns.name"
 
 func (h Handler) filterDockerLabels() ([]config.DomainRecord, error) {
-	containers, err := h.dockerCli.ContainerList(context.Background(), types.ContainerListOptions{
+	containers, err := h.dockerCli.ContainerList(context.Background(), container.ListOptions{
 		Filters: filters.NewArgs(filters.Arg("label", dockdnsNameLabel)),
 	})
 	if err != nil {
