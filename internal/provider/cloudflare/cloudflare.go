@@ -2,6 +2,7 @@ package cloudflare
 
 import (
 	"context"
+	"slices"
 
 	"github.com/Tarow/dockdns/internal/constants"
 	"github.com/Tarow/dockdns/internal/dns"
@@ -41,7 +42,12 @@ func (cfp cloudflareProvider) List() ([]dns.Record, error) {
 		return nil, err
 	}
 
-	return append(ip4Records, ip6Records...), nil
+	cnameRecords, err := cfp.list(constants.RecordTypeCNAME)
+	if err != nil {
+		return nil, err
+	}
+
+	return slices.Concat(ip4Records, ip6Records, cnameRecords), nil
 }
 
 func (cfp cloudflareProvider) list(recordType string) ([]dns.Record, error) {
@@ -89,7 +95,7 @@ func (cfp cloudflareProvider) Create(record dns.Record) (dns.Record, error) {
 		Type:    record.Type,
 		Proxied: &record.Proxied,
 		TTL:     int(record.TTL),
-		Content: record.IP,
+		Content: record.Content,
 	})
 
 	if err != nil {
@@ -104,7 +110,7 @@ func (cfp cloudflareProvider) Update(record dns.Record) (dns.Record, error) {
 		Type:    record.Type,
 		Proxied: &record.Proxied,
 		TTL:     record.TTL,
-		Content: record.IP,
+		Content: record.Content,
 	})
 
 	if err != nil {
@@ -136,7 +142,7 @@ func mapRecord(r cloudflare.DNSRecord) dns.Record {
 		ID:      r.ID,
 		Name:    r.Name,
 		Type:    r.Type,
-		IP:      r.Content,
+		Content: r.Content,
 		Proxied: proxied,
 		TTL:     r.TTL,
 	}

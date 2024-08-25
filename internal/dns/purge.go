@@ -2,6 +2,7 @@ package dns
 
 import (
 	"log/slog"
+	"strings"
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/constants"
@@ -29,11 +30,18 @@ func (h Handler) purgeUnknownRecords(provider Provider, domains []config.DomainR
 func containsRecord(domains []config.DomainRecord, toCheck Record, dnsCfg config.DNS) bool {
 	for _, domain := range domains {
 		if domain.Name == toCheck.Name {
-			if dnsCfg.EnableIP4 && toCheck.Type == constants.RecordTypeA {
-				return true
-			}
-			if dnsCfg.EnableIP6 && toCheck.Type == constants.RecordTypeAAAA {
-				return true
+			// If a CNAME is configured, the A and AAAA settings will be considered unknown
+			if strings.TrimSpace(domain.CName) != "" {
+				if toCheck.Type == constants.RecordTypeCNAME {
+					return true
+				}
+			} else {
+				if dnsCfg.EnableIP4 && toCheck.Type == constants.RecordTypeA {
+					return true
+				}
+				if dnsCfg.EnableIP6 && toCheck.Type == constants.RecordTypeAAAA {
+					return true
+				}
 			}
 		}
 	}

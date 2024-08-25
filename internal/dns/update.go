@@ -10,12 +10,17 @@ import (
 
 func (h Handler) updateRecords(provider Provider, domains []config.DomainRecord) {
 	for _, domain := range domains {
-		if strings.TrimSpace(domain.IP4) != "" && h.DnsCfg.EnableIP4 {
-			h.updateRecord(provider, domain, constants.RecordTypeA)
-		}
+		// Important: If a CNAME is set, A and AAAA records for the same name cannot be set. They will be ignored!
+		if strings.TrimSpace(domain.CName) != "" {
+			h.updateRecord(provider, domain, constants.RecordTypeCNAME)
+		} else {
+			if strings.TrimSpace(domain.IP4) != "" && h.DnsCfg.EnableIP4 {
+				h.updateRecord(provider, domain, constants.RecordTypeA)
+			}
 
-		if strings.TrimSpace(domain.IP6) != "" && h.DnsCfg.EnableIP6 {
-			h.updateRecord(provider, domain, constants.RecordTypeAAAA)
+			if strings.TrimSpace(domain.IP6) != "" && h.DnsCfg.EnableIP6 {
+				h.updateRecord(provider, domain, constants.RecordTypeAAAA)
+			}
 		}
 	}
 }
@@ -31,7 +36,7 @@ func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, rec
 		return
 	}
 
-	newRecord := createRecord(domain, h.DnsCfg, recordType)
+	newRecord := createRecord(domain, recordType)
 	var updatedRecord Record
 	if existingRecord.ID == "" {
 		updatedRecord, err = provider.Create(newRecord)
@@ -39,7 +44,7 @@ func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, rec
 			slog.Error("failed to create record", "record", newRecord, "error", err)
 			return
 		}
-		slog.Info("Successfully created new record", "name", updatedRecord.Name, "ip", updatedRecord.IP, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
+		slog.Info("Successfully created new record", "name", updatedRecord.Name, "content", updatedRecord.Content, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
 	} else {
 		newRecord.ID = existingRecord.ID
 		updatedRecord, err = provider.Update(newRecord)
@@ -47,15 +52,15 @@ func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, rec
 			slog.Error("failed to update record", "record", newRecord, "error", err)
 			return
 		}
-		slog.Info("Successfully updated record", "name", updatedRecord.Name, "ip", updatedRecord.IP, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
+		slog.Info("Successfully updated record", "name", updatedRecord.Name, "content", updatedRecord.Content, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
 	}
 
 }
 
-func createRecord(domain config.DomainRecord, dnsCfg config.DNS, recordType string) Record {
+func createRecord(domain config.DomainRecord, recordType string) Record {
 	return Record{
 		Name:    domain.Name,
-		IP:      domain.GetIP(recordType),
+		Content: domain.GetContent(recordType),
 		Type:    recordType,
 		TTL:     domain.TTL,
 		Proxied: domain.Proxied,
@@ -63,9 +68,9 @@ func createRecord(domain config.DomainRecord, dnsCfg config.DNS, recordType stri
 }
 
 func isEqual(record Record, domain config.DomainRecord, recordType string) bool {
-	ip := domain.GetIP(recordType)
+	content := domain.GetContent(recordType)
 
-	if record.IP != ip {
+	if record.Content != content {
 		return false
 	}
 

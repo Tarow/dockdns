@@ -30,7 +30,7 @@ type Provider interface {
 type Record struct {
 	ID      string
 	Name    string
-	IP      string
+	Content string
 	Type    string
 	Proxied bool
 	TTL     int
@@ -112,6 +112,7 @@ func (h *Handler) Run() error {
 	h.LastUpdate = time.Now()
 	h.LatestDomains = allDomains
 
+	slog.Debug("finished dns update job")
 	return nil
 }
 

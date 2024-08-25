@@ -18,6 +18,9 @@ templ DomainList(domains config.Domains) {
 						IPv6
 					</th>
 					<th scope="col" class="px-6 py-3">
+						CNAME
+					</th>
+					<th scope="col" class="px-6 py-3">
 						TTL
 					</th>
 					<th scope="col" class="px-6 py-3">
@@ -36,6 +39,9 @@ templ DomainList(domains config.Domains) {
 						</td>
 						<td class="px-6 py-4">
 							{ domain.IP6 }
+						</td>
+						<td class="px-6 py-4">
+							{ domain.CName }
 						</td>
 						<td class="px-6 py-4">
 							{ fmt.Sprintf("%v", domain.TTL) }

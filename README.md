@@ -10,6 +10,7 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 - Static DNS record configuration based on a config file
 - Dynamic DNS record configuration based on Docker labels
 - IPv4 & IPv6 support
+- CNAME support
 - Supports multiple zones
 
 ## Configuration
@@ -44,6 +45,9 @@ domains:
   - name: "somedomain.com"
     a: 10.0.0.2
     aaaa: ::1
+
+  - name: "alt.somedomain.com"
+    cname: "main.somedomain.com"
 ```
 
 ## Dynamic Domains
@@ -55,12 +59,14 @@ Supported labels:
 | dockdns.name | dockdns.name=somedomain.com |
 | dockdns.a | dockdns.a=127.0.0.1 |
 | dockdns.aaaa | dockdns.aaaa=::1 |
+| dockdns.cname | dockdns.cname=someotherdomain.com |
 | dockdns.ttl | dockdns.ttl=600 |
 | dockdns.proxied | dockdns.proxied=false |
 
 ---
 
 If no explicit IP address is set, the public IP will be fetched and set automatically (DynDNS).
+If a `CNAME` is set, `A` and `AAAA` settings are ignored.
 
 ## Installation
 
@@ -85,8 +91,6 @@ docker run -v ./config.yaml:/app/config.yaml -v /var/run/docker.sock:/var/run/do
 ### Docker Compose
 
 ```yaml
-version: "3.7"
-
 services:
   dockdns:
     image: ghcr.io/tarow/dockdns:latest

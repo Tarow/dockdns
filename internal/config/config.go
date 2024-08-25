@@ -41,14 +41,20 @@ type DomainRecord struct {
 	Name    string `yaml:"name" label:"dockdns.name"`
 	IP4     string `yaml:"a" label:"dockdns.a"`
 	IP6     string `yaml:"aaaa" label:"dockdns.aaaa"`
+	CName   string `yaml:"cname" label:"dockdns.cname"`
 	TTL     int    `yaml:"ttl" label:"dockdns.ttl"`
 	Proxied bool   `yaml:"proxied" label:"dockdns.proxied"`
 }
 
-func (d DomainRecord) GetIP(recordType string) string {
-	if recordType == constants.RecordTypeA {
+func (d DomainRecord) GetContent(recordType string) string {
+	switch recordType {
+	case constants.RecordTypeA:
 		return d.IP4
-	} else {
+	case constants.RecordTypeAAAA:
 		return d.IP6
+	case constants.RecordTypeCNAME:
+		return d.CName
+	default:
+		return ""
 	}
 }
