@@ -24,3 +24,6 @@ domains:
 
   - name: "somedomain.com"
     a: 10.0.0.2
+
+  - name: "alt.somedomain.com"
+    cname: "main.somedomain.com"
