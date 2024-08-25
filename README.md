@@ -40,14 +40,14 @@ dns:
 
 # Static domain configuration (optional)
 domains:
-  - name: "*.somedomain.com"
+  - name: "*.somedomain.com" # IPs for A and AAAA records will be determined dynamically
 
   - name: "somedomain.com"
-    a: 10.0.0.2
-    aaaa: ::1
+    a: 10.0.0.2 # Static IPv4 address
+    aaaa: ::1 # Static IPv6 address
 
-  - name: "alt.somedomain.com"
-    cname: "main.somedomain.com"
+  - name: "alt.somedomain.com" # Name of the CNAME record
+    cname: "main.somedomain.com" # Target of the CNAME record
 ```
 
 ## Dynamic Domains
@@ -59,7 +59,7 @@ Supported labels:
 | dockdns.name | dockdns.name=somedomain.com |
 | dockdns.a | dockdns.a=127.0.0.1 |
 | dockdns.aaaa | dockdns.aaaa=::1 |
-| dockdns.cname | dockdns.cname=someotherdomain.com |
+| dockdns.cname | dockdns.cname=target.otherdomain.com |
 | dockdns.ttl | dockdns.ttl=600 |
 | dockdns.proxied | dockdns.proxied=false |
 
