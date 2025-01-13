@@ -18,12 +18,12 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 The app configuration as well as the static domain entries are read from a configuration file (see [example configuration](config.example.yaml)).
 
 ```yaml
-interval: 600 # Optional, the update interval in seconds. Defaults to 600
+interval: 600 # Optional, the update interval in seconds. Defaults to 600. Negative interval will result in one-shot invocations.
 
 webUI: false # Optional, enables a WebUI (port 8080) that lists the scanned domains and current settings. Defaults to false
 
 log:
-  level: debug # Optional, Log level, one of 'debug', 'info', 'warn' or 'error'. Defaults to 'info'
+  level: info # Optional, Log level, one of 'debug', 'info', 'warn' or 'error'. Defaults to 'info'
   format: simple # Optional, output of the log format, 'simple' or 'json'. Defaults to 'simple'
 
 zones: # Zone configuration (multiple zones can be provided)
