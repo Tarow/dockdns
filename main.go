@@ -17,7 +17,7 @@ import (
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider"
-	"github.com/Tarow/dockdns/schedule"
+	"github.com/Tarow/dockdns/internal/schedule"
 	"github.com/docker/docker/client"
 	"github.com/ilyakaznacheev/cleanenv"
 )
