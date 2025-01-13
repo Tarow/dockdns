@@ -8,16 +8,15 @@ import (
 	"strconv"
 
 	"github.com/Tarow/dockdns/internal/config"
+	"github.com/Tarow/dockdns/internal/constants"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 )
 
-const dockdnsNameLabel = "dockdns.name"
-
 func (h Handler) filterDockerLabels() ([]config.DomainRecord, error) {
 	containers, err := h.dockerCli.ContainerList(context.Background(), container.ListOptions{
-		Filters: filters.NewArgs(filters.Arg("label", dockdnsNameLabel)),
+		Filters: filters.NewArgs(filters.Arg("label", constants.DockdnsNameLabel)),
 	})
 	if err != nil {
 		return nil, err

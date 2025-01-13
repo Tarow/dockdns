@@ -4,7 +4,6 @@ import (
 	"context"
 	"embed"
 	"flag"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -18,6 +17,7 @@ import (
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider"
+	"github.com/Tarow/dockdns/internal/schedule"
 	"github.com/docker/docker/client"
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -58,36 +58,46 @@ func main() {
 	if err != nil {
 		dockerCli = nil
 		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
+	} else {
+		dockerCli.NegotiateAPIVersion(context.Background())
 	}
 
 	dnsHandler := dns.NewHandler(providers, appCfg.DNS, appCfg.Domains, dockerCli)
-
-	signalCh := make(chan os.Signal, 1)
-	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	ctx, cancel := context.WithCancel(context.Background())
-
-	//run the dns handler
+	//run function
 	run := func() {
 		if err := dnsHandler.Run(); err != nil {
 			slog.Error("DNS update failed with error", "error", err)
 		}
 	}
+
+	// If interval is  0, we will only run once, otherwise we will run in continuous mode
+	if appCfg.Interval < 0 {
+		slog.Info("Negative interval specified, running DNS update just once")
+		run()
+		slog.Info("Finished DNS update")
+		return
+	}
+
+	signalCh := make(chan os.Signal, 1)
+	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
+
+	wg := sync.WaitGroup{}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	scheduler := schedule.NewScheduler(run)
+	dockerEventTrigger := schedule.NewDockerEventTrigger()
+	intervalTrigger := schedule.NewIntervalTrigger(time.Duration(appCfg.Interval) * time.Second)
+	scheduler.Register(dockerEventTrigger)
+	scheduler.Register(intervalTrigger)
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		slog.Info(fmt.Sprintf("Starting DNS updater, updating DNS entries every %v seconds", appCfg.Interval))
-		run()
-		for {
-			select {
-			case <-time.After(time.Duration(appCfg.Interval) * time.Second):
-				run()
-			case <-ctx.Done():
-				slog.Info("Received termination signal. Exiting DNS updater...")
-				return
-			}
-		}
+		slog.Info("Starting DNS updater")
+
+		// Start scheduler
+		scheduler.Start(ctx, true)
+		slog.Info("Received termination signal. Exiting DNS updater...")
 	}()
 
 	var server *http.Server
@@ -106,7 +116,7 @@ func main() {
 		go func() {
 			defer wg.Done()
 			if err := server.ListenAndServe(); err != http.ErrServerClosed {
-				slog.Error("HTTP server error: %v\n", err)
+				slog.Error("HTTP server error", "err", err)
 			} else {
 				slog.Info("Received shutdown signal, shutting down API server ...")
 			}
