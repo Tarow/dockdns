@@ -12,6 +12,7 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 - IPv4 & IPv6 support
 - CNAME support
 - Supports multiple zones
+- Automatic trigger when containers start & stop
 
 ## Configuration
 
