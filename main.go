@@ -58,10 +58,25 @@ func main() {
 	if err != nil {
 		dockerCli = nil
 		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
+	} else {
+		dockerCli.NegotiateAPIVersion(context.Background())
 	}
-	dockerCli.NegotiateAPIVersion(context.Background())
 
 	dnsHandler := dns.NewHandler(providers, appCfg.DNS, appCfg.Domains, dockerCli)
+	//run function
+	run := func() {
+		if err := dnsHandler.Run(); err != nil {
+			slog.Error("DNS update failed with error", "error", err)
+		}
+	}
+
+	// If interval is  0, we will only run once, otherwise we will run in continuous mode
+	if appCfg.Interval < 0 {
+		slog.Info("Negative interval specified, running DNS update just once")
+		run()
+		slog.Info("Finished DNS update")
+		return
+	}
 
 	signalCh := make(chan os.Signal, 1)
 	signal.Notify(signalCh, os.Interrupt, syscall.SIGTERM)
@@ -69,12 +84,6 @@ func main() {
 	wg := sync.WaitGroup{}
 	ctx, cancel := context.WithCancel(context.Background())
 
-	//run the dns handler
-	run := func() {
-		if err := dnsHandler.Run(); err != nil {
-			slog.Error("DNS update failed with error", "error", err)
-		}
-	}
 	scheduler := schedule.NewScheduler(run)
 	dockerEventTrigger := schedule.NewDockerEventTrigger()
 	intervalTrigger := schedule.NewIntervalTrigger(time.Duration(appCfg.Interval) * time.Second)

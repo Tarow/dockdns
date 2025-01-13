@@ -3,7 +3,7 @@ package config
 import "github.com/Tarow/dockdns/internal/constants"
 
 type AppConfig struct {
-	Interval uint      `yaml:"interval" env-default:"600"`
+	Interval int       `yaml:"interval" env-default:"600"`
 	WebUI    bool      `yaml:"webUI" env-default:"false"`
 	Log      LogConfig `yaml:"log"`
 	Zones    Zones     `yaml:"zones"`
