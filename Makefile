@@ -27,7 +27,6 @@ lint:
 tidy:
 	go mod tidy
 
-
 docker-build:
 	docker build -f docker/Dockerfile . --tag $(IMAGE_NAME):$(firstword $(TAGS))
 	$(foreach tag,$(filter-out $(firstword $(TAGS)),$(TAGS)),\

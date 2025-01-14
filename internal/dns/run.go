@@ -118,12 +118,19 @@ func (h *Handler) Run() error {
 
 func (h Handler) setIPs(domains []config.DomainRecord, publicIp4, publicIp6 string) {
 	for i, domain := range domains {
-		if strings.TrimSpace(domain.IP4) == "" && h.DnsCfg.EnableIP4 {
-			domain.IP4 = publicIp4
+		// If a CNAME is configured, A and AAAA settings will be ignored. We clear the IP attributes
+		if strings.TrimSpace(domain.CName) != "" {
+			domain.IP4 = ""
+			domain.IP6 = ""
+		} else {
+			if strings.TrimSpace(domain.IP4) == "" && h.DnsCfg.EnableIP4 {
+				domain.IP4 = publicIp4
+			}
+			if strings.TrimSpace(domain.IP6) == "" && h.DnsCfg.EnableIP6 {
+				domain.IP6 = publicIp6
+			}
 		}
-		if strings.TrimSpace(domain.IP6) == "" && h.DnsCfg.EnableIP6 {
-			domain.IP6 = publicIp6
-		}
+
 		domains[i] = domain
 	}
 }
