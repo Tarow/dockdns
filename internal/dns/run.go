@@ -172,7 +172,6 @@ func filterDomains(allDomains config.Domains, zoneName string) config.Domains {
 func containsDomain(domains []config.DomainRecord, domainName string) bool {
 	for _, domain := range domains {
 		if domain.Name == domainName {
-
 			return true
 		}
 	}
