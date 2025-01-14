@@ -34,6 +34,7 @@ type Record struct {
 	Type    string
 	Proxied bool
 	TTL     int
+	Comment string
 }
 
 func NewHandler(providers map[string]Provider, dnsDefaultCfg config.DNS,

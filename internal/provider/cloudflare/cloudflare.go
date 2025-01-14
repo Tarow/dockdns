@@ -96,6 +96,7 @@ func (cfp cloudflareProvider) Create(record dns.Record) (dns.Record, error) {
 		Proxied: &record.Proxied,
 		TTL:     int(record.TTL),
 		Content: record.Content,
+		Comment: record.Comment,
 	})
 
 	if err != nil {
@@ -111,6 +112,7 @@ func (cfp cloudflareProvider) Update(record dns.Record) (dns.Record, error) {
 		Proxied: &record.Proxied,
 		TTL:     record.TTL,
 		Content: record.Content,
+		Comment: &record.Comment,
 	})
 
 	if err != nil {
@@ -145,5 +147,6 @@ func mapRecord(r cloudflare.DNSRecord) dns.Record {
 		Content: r.Content,
 		Proxied: proxied,
 		TTL:     r.TTL,
+		Comment: r.Comment,
 	}
 }

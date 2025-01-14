@@ -44,7 +44,7 @@ func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, rec
 			slog.Error("failed to create record", "record", newRecord, "error", err)
 			return
 		}
-		slog.Info("Successfully created new record", "name", updatedRecord.Name, "content", updatedRecord.Content, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
+		slog.Info("Successfully created new record", "name", updatedRecord.Name, "content", updatedRecord.Content, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied, "comment", updatedRecord.Comment)
 	} else {
 		newRecord.ID = existingRecord.ID
 		updatedRecord, err = provider.Update(newRecord)
@@ -52,7 +52,7 @@ func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, rec
 			slog.Error("failed to update record", "record", newRecord, "error", err)
 			return
 		}
-		slog.Info("Successfully updated record", "name", updatedRecord.Name, "content", updatedRecord.Content, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied)
+		slog.Info("Successfully updated record", "name", updatedRecord.Name, "content", updatedRecord.Content, "type", updatedRecord.Type, "ttl", updatedRecord.TTL, "proxied", updatedRecord.Proxied, "comment", updatedRecord.Comment)
 	}
 
 }
@@ -64,6 +64,7 @@ func createRecord(domain config.DomainRecord, recordType string) Record {
 		Type:    recordType,
 		TTL:     domain.TTL,
 		Proxied: domain.Proxied,
+		Comment: domain.Comment,
 	}
 }
 
@@ -79,6 +80,10 @@ func isEqual(record Record, domain config.DomainRecord, recordType string) bool 
 	}
 
 	if record.Proxied != domain.Proxied {
+		return false
+	}
+
+	if record.Comment != domain.Comment {
 		return false
 	}
 
