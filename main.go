@@ -23,12 +23,14 @@ import (
 )
 
 var configPath string
+var dryRun bool
 
 //go:embed static/*
 var staticAssets embed.FS
 
 func main() {
 	flag.StringVar(&configPath, "config", "config.yaml", "Path to the configuration file")
+	flag.BoolVar(&dryRun, "dry-run", false, "Enable dry run mode (no changes will be made)")
 	flag.Parse()
 
 	var appCfg config.AppConfig
@@ -44,9 +46,13 @@ func main() {
 		slog.Error("no zone configuration found, exiting")
 		os.Exit(1)
 	}
+
+	if dryRun {
+		slog.Info("Dry run enabled, changes won't be applied")
+	}
 	providers := map[string]dns.Provider{}
 	for _, zone := range appCfg.Zones {
-		dnsProvider, err := provider.Get(zone)
+		dnsProvider, err := provider.Get(zone, dryRun)
 		if err != nil {
 			slog.Error("Failed to create DNS provider", "zone", zone.Name, "error", err)
 			os.Exit(1)

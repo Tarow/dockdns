@@ -21,7 +21,7 @@ var providers = map[string]func(config.Zone) (dns.Provider, error){
 	},
 }
 
-func Get(zoneCfg config.Zone) (dns.Provider, error) {
+func Get(zoneCfg config.Zone, dryRun bool) (dns.Provider, error) {
 	if zoneCfg.Provider == "" {
 		return nil, errors.New("no DNS provider specified")
 	}
@@ -31,5 +31,9 @@ func Get(zoneCfg config.Zone) (dns.Provider, error) {
 		return nil, fmt.Errorf("invalid provider: %s", zoneCfg.Provider)
 	}
 
-	return providerCreator(zoneCfg)
+	provider, err := providerCreator(zoneCfg)
+	if dryRun {
+		provider = NewDryRunProvider(provider)
+	}
+	return provider, err
 }
