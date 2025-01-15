@@ -12,7 +12,7 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 - IPv4 & IPv6 support
 - CNAME support
 - Supports multiple zones
-- Automatic trigger when containers start & stop
+- Automatically trigger DNS updates when labeled containers start & stop
 
 ## Configuration
 
@@ -44,6 +44,7 @@ dns:
 # Static domain configuration (optional)
 domains:
   - name: "*.somedomain.com" # IPs for A and AAAA records will be determined dynamically
+    comment: "Some comment" # Record comment
 
   - name: "somedomain.com"
     a: 10.0.0.2 # Static IPv4 address
@@ -65,6 +66,7 @@ Supported labels:
 | dockdns.cname | dockdns.cname=target.otherdomain.com |
 | dockdns.ttl | dockdns.ttl=600 |
 | dockdns.proxied | dockdns.proxied=false |
+| dockdns.comment | dockdns.comment=Some comment |
 
 ---
 
