@@ -76,7 +76,7 @@ func main() {
 		}
 	}
 
-	// If interval is  0, we will only run once, otherwise we will run in continuous mode
+	// If interval is less than 0, we will only run once, otherwise we will run in continuous mode
 	if appCfg.Interval < 0 {
 		slog.Info("Negative interval specified, running DNS update just once")
 		run()
@@ -91,7 +91,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	scheduler := schedule.NewScheduler(run)
-	dockerEventTrigger := schedule.NewDockerEventTrigger()
+	dockerEventTrigger := schedule.NewDockerEventTrigger(dockerCli)
 	intervalTrigger := schedule.NewIntervalTrigger(time.Duration(appCfg.Interval) * time.Second)
 	scheduler.Register(dockerEventTrigger)
 	scheduler.Register(intervalTrigger)
@@ -102,7 +102,11 @@ func main() {
 		slog.Info("Starting DNS updater")
 
 		// Start scheduler
-		scheduler.Start(ctx, true)
+		scheduler.Start(ctx,
+			time.Duration(appCfg.DebounceTime)*time.Second,
+			time.Duration(appCfg.MaxDebounceTime)*time.Second,
+			true)
+
 		slog.Info("Received termination signal. Exiting DNS updater...")
 	}()
 

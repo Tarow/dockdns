@@ -28,10 +28,9 @@ func (i *IntervalTrigger) Start(ctx context.Context, eventChan chan<- TriggerEve
 			slog.Debug("Resetting interval timer")
 			continue
 		case <-time.After(i.interval):
-			event := TriggerEvent{
+			eventChan <- TriggerEvent{
 				Name: "IntervalTrigger",
 			}
-			eventChan <- event
 		}
 	}
 }

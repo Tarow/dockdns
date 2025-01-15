@@ -2,7 +2,6 @@ package schedule
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/Tarow/dockdns/internal/constants"
@@ -15,12 +14,7 @@ type DockerEventTrigger struct {
 	client *client.Client
 }
 
-func NewDockerEventTrigger() *DockerEventTrigger {
-	dockerCli, err := client.NewClientWithOpts(client.FromEnv)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create Docker client: %v", err))
-	}
-	dockerCli.NegotiateAPIVersion(context.Background())
+func NewDockerEventTrigger(dockerCli *client.Client) *DockerEventTrigger {
 	return &DockerEventTrigger{
 		client: dockerCli,
 	}
