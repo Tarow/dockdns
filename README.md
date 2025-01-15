@@ -20,7 +20,8 @@ The app configuration as well as the static domain entries are read from a confi
 
 ```yaml
 interval: 600 # Optional, the update interval in seconds. Defaults to 600. Negative interval will result in one-shot invocations.
-debounceTime: 4 # Optional, delay the DNS update run until no new trigger event has been received for <<debounceTime>> seconds. This is used to avoid multiple DNS update runs when multiple containers are started/stopped in succession, e.g. by Docker Compose. Defaults to 4.
+debounceTime: 10 # Optional, delay the DNS update run until no new trigger event has been received for <<debounceTime>> seconds. This is used to avoid multiple DNS update runs when multiple containers are started/stopped in succession, e.g. by Docker Compose. Defaults to 10.
+maxDebounceTime: 600 # Optional, if debouncing exceeds <<maxDebounceTime>> seconds, do not delay the DNS update beyond that. This avoids delaying the DNS update forever, e.g. in case of crash-looping containers that generate trigger events indefinitely.
 
 webUI: false # Optional, enables a WebUI (port 8080) that lists the scanned domains and current settings. Defaults to false
 

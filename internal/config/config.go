@@ -3,13 +3,14 @@ package config
 import "github.com/Tarow/dockdns/internal/constants"
 
 type AppConfig struct {
-	Interval     int       `yaml:"interval" env-default:"600"`
-	DebounceTime int       `yaml:"debounceTime" env-default:"4"`
-	WebUI        bool      `yaml:"webUI" env-default:"false"`
-	Log          LogConfig `yaml:"log"`
-	Zones        Zones     `yaml:"zones"`
-	DNS          DNS       `yaml:"dns"`
-	Domains      Domains   `yaml:"domains"`
+	Interval        int       `yaml:"interval" env-default:"600"`
+	DebounceTime    int       `yaml:"debounceTime" env-default:"10"`
+	MaxDebounceTime int       `yaml:"maxDebounceTime" env-default:"600"`
+	WebUI           bool      `yaml:"webUI" env-default:"false"`
+	Log             LogConfig `yaml:"log"`
+	Zones           Zones     `yaml:"zones"`
+	DNS             DNS       `yaml:"dns"`
+	Domains         Domains   `yaml:"domains"`
 }
 
 type LogFormat string

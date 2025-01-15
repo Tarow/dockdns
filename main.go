@@ -76,7 +76,7 @@ func main() {
 		}
 	}
 
-	// If interval is  0, we will only run once, otherwise we will run in continuous mode
+	// If interval is less than 0, we will only run once, otherwise we will run in continuous mode
 	if appCfg.Interval < 0 {
 		slog.Info("Negative interval specified, running DNS update just once")
 		run()
@@ -102,7 +102,11 @@ func main() {
 		slog.Info("Starting DNS updater")
 
 		// Start scheduler
-		scheduler.Start(ctx, time.Duration(appCfg.DebounceTime)*time.Second, true)
+		scheduler.Start(ctx,
+			time.Duration(appCfg.DebounceTime)*time.Second,
+			time.Duration(appCfg.MaxDebounceTime)*time.Second,
+			true)
+
 		slog.Info("Received termination signal. Exiting DNS updater...")
 	}()
 
