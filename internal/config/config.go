@@ -44,6 +44,7 @@ type DomainRecord struct {
 	CName   string `yaml:"cname" label:"dockdns.cname"`
 	TTL     int    `yaml:"ttl" label:"dockdns.ttl"`
 	Proxied bool   `yaml:"proxied" label:"dockdns.proxied"`
+	Comment string `yaml:"comment" label:"dockdns.comment"`
 }
 
 func (d DomainRecord) GetContent(recordType string) string {
