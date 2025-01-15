@@ -33,7 +33,7 @@ func (s *Scheduler) Register(trigger Trigger) {
 	s.triggers = append(s.triggers, trigger)
 }
 
-func (s *Scheduler) Start(ctx context.Context, runAtStart bool) {
+func (s *Scheduler) Start(ctx context.Context, debounceInterval time.Duration, runAtStart bool) {
 	eventChan := make(chan TriggerEvent, 1)
 	var wg sync.WaitGroup
 
@@ -45,22 +45,27 @@ func (s *Scheduler) Start(ctx context.Context, runAtStart bool) {
 		}(trigger)
 	}
 
-	if runAtStart {
-		s.executeTask()
-	}
+	initRunDone := !runAtStart
 
 	// Use debounce logic, so multiple docker events etc. will just trigger one update run
-	debounceInterval := 2 * time.Second
 	debounceTimer := time.NewTimer(debounceInterval)
+
 	var lastEvent *TriggerEvent
 	for {
 		select {
 		case e := <-eventChan:
 			lastEvent = &e
+			slog.Debug("Received event, resetting debounce timer", "name", e.Name)
 			debounceTimer.Reset(debounceInterval)
 
 		case <-debounceTimer.C:
+			// lastEvent == nil -> No trigger, initial timer expired. Only run if runAtStart is true and there was no initial run yet.
 			if lastEvent == nil {
+				if !initRunDone {
+					slog.Debug("Performing initial DNS update after startup")
+					s.executeTask()
+					initRunDone = true
+				}
 				continue
 			}
 

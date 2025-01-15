@@ -1,4 +1,5 @@
-interval: 300
+interval: 600
+debounceTime: 4
 
 webUI: false
 
