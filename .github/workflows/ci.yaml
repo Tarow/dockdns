@@ -12,6 +12,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  golangci:
     name: lint
     runs-on: ubuntu-latest
     steps:
