@@ -65,6 +65,11 @@ func main() {
 		dockerCli = nil
 		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
 	} else {
+		if _, err := dockerCli.Ping(context.Background()); err != nil {
+			slog.Error("failed to ping docker daemon", "err", err)
+			os.Exit(1)
+		}
+
 		dockerCli.NegotiateAPIVersion(context.Background())
 	}
 
@@ -142,7 +147,9 @@ func main() {
 	if appCfg.WebUI {
 		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelShutdown()
-		server.Shutdown(shutdownCtx)
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			slog.Warn("failed to shutdown server", "error", err)
+		}
 	}
 	wg.Wait()
 	slog.Info("Stopped all goroutines, bye")

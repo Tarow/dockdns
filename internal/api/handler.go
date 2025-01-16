@@ -1,7 +1,7 @@
 package api
 
 import (
-	"context"
+	"log/slog"
 	"net/http"
 
 	"github.com/Tarow/dockdns/internal/dns"
@@ -21,5 +21,8 @@ func NewHandler(dnsHandler *dns.Handler) Handler {
 func (h Handler) GetIndex(w http.ResponseWriter, r *http.Request) {
 	indexTemplate := template.Index(h.dnsHandler.DnsCfg, h.dnsHandler.LatestDomains, h.dnsHandler.LastUpdate)
 	w.WriteHeader(http.StatusOK)
-	indexTemplate.Render(context.Background(), w)
+	err := indexTemplate.Render(r.Context(), w)
+	if err != nil {
+		slog.Warn("failed to render index page", "err", err)
+	}
 }
