@@ -1,10 +1,15 @@
 {
-  description = "A Nix-flake-based Starforge development environment";
+  description = "DockDNS";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
-  outputs = {nixpkgs, ...}: let
+  outputs = {
+    nixpkgs,
+    nixpkgs-unstable,
+    ...
+  }: let
     systems = [
       "aarch64-linux"
       "i686-linux"
@@ -16,17 +21,21 @@
   in {
     devShells = forAllSystems (system: let
       pkgs = nixpkgs.legacyPackages.${system};
+      unstable = nixpkgs-unstable.legacyPackages.${system};
     in {
       default = pkgs.mkShell {
-        packages = with pkgs; [
-          go
-          golangci-lint
-          air
-          gopls
-          gotools
-          delve
-          templ
-        ];
+        packages = with pkgs;
+          [
+            go
+            golangci-lint
+            air
+            gopls
+            gotools
+            delve
+          ]
+          ++ (with unstable; [
+            templ
+          ]);
       };
     });
 
@@ -36,29 +45,30 @@
         pkgs = nixpkgs.legacyPackages.${system};
         lib = nixpkgs.lib;
       in rec {
-        default = starforge;
+        default = dockdns;
 
-        starforge = pkgs.buildGoModule {
-          name = "starforge";
+        dockdns = pkgs.buildGoModule {
+          name = "dockdns";
           buildInputs = nixpkgs.lib.lists.optionals pkgs.stdenv.isDarwin [pkgs.darwin.apple_sdk.frameworks.AppKit];
-          src = lib.fileset.toSource rec {
+          src = lib.fileset.toSource {
             root = ./.;
             fileset = lib.fileset.unions [
               ./go.mod
               ./go.sum
-              ./staticpage
-              (lib.fileset.fileFilter (file: file.hasExt "go") root)
-              (lib.fileset.fileFilter (file: file.hasExt "yaml") root)
+              ./main.go
+              ./internal
+              ./templates
+              ./static
             ];
           };
-          vendorHash = "sha256-m8NfBSgIkPRMRAXf5eTduZWQQ4gHJrRVWqgWPQrm42g=";
-          meta.mainProgram = "starforge";
+          vendorHash = "sha256-SBj77wu4wivrwc69E/9tSn4QV5DoqWkTjGc22r2Us/4=";
+          meta.mainProgram = "dockdns";
         };
 
-        starforge-docker = pkgs.dockerTools.buildImage {
-          name = "starforge";
+        dockdns-docker = pkgs.dockerTools.buildImage {
+          name = "dockdns";
           config = {
-            Cmd = ["${lib.getExe starforge}"];
+            Cmd = ["${lib.getExe dockdns}"];
           };
         };
       });

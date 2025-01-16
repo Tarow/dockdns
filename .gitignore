@@ -31,3 +31,6 @@ bin/
 
 # Temporary files
 tmp/
+
+# Nix build result
+result
