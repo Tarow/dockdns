@@ -3,6 +3,7 @@
   "prHourlyLimit": 0,
   "extends": ["config:recommended"],
   "timezone": "Europe/Berlin",
+  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 2am on sunday"]
