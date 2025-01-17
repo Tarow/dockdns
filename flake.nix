@@ -61,7 +61,7 @@
               ./static
             ];
           };
-          vendorHash = "sha256-SBj77wu4wivrwc69E/9tSn4QV5DoqWkTjGc22r2Us/4=";
+          vendorHash = "sha256-1NJWXNBXowvI7mL68Xpw5CLSl0ACXp/zi7wb02Dz33U=";
           meta.mainProgram = "dockdns";
         };
 
