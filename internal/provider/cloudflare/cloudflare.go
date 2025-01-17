@@ -6,7 +6,7 @@ import (
 
 	"github.com/Tarow/dockdns/internal/constants"
 	"github.com/Tarow/dockdns/internal/dns"
-	"github.com/cloudflare/cloudflare-go"
+	"github.com/cloudflare/cloudflare-go/v4"
 )
 
 type cloudflareProvider struct {
