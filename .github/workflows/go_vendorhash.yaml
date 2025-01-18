@@ -34,15 +34,8 @@ jobs:
           diff=$(git diff)
           if [[ -z "$diff" ]]; then
             echo "diff-exists=false" >> "$GITHUB_OUTPUT"
-            echo "No changes, everything tidy."
-            exit 0
           else
             echo "diff-exists=true" >> "$GITHUB_OUTPUT"
-            cat << EOF >> "${GITHUB_STEP_SUMMARY}"
-            \`\`\`diff
-            ${diff}
-            \`\`\`
-            EOF
           fi
 
       - name: Commit and Push Changes
