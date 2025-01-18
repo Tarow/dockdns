@@ -1,0 +1,58 @@
+name: Update Go vendorHash
+on:
+  push:
+    paths:
+      - go.mod
+      - go.sum
+  workflow_dispatch:
+
+jobs:
+  updateVendorHash:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate App Token
+        uses: actions/create-github-app-token@v1
+        id: generate_token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Update vendor hash
+        run: nix run .#nixpkgs.nix-update -- --flake --version=skip dockdns
+
+      - name: Check diff
+        id: check-diff
+        run: |
+          diff=$(git diff)
+          if [[ -z "$diff" ]]; then
+            echo "diff-exists=false" >> "$GITHUB_OUTPUT"
+            echo "No changes, everything tidy."
+            exit 0
+          else
+            echo "diff-exists=true" >> "$GITHUB_OUTPUT"
+            cat << EOF >> "${GITHUB_STEP_SUMMARY}"
+            \`\`\`diff
+            ${diff}
+            \`\`\`
+            EOF
+          fi
+
+    - name: Commit and Push Changes
+        if: steps.check-diff.outputs.diff-exists == 'true'
+        run: |
+          git config --global user.name "Tarow[bot]"
+          git config --global user.email "Tarow[bot]@users.noreply.github.com"
+
+          git add flake.nix
+          git commit -m "chore: Update Go vendorHash"
+          git push origin HEAD
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
