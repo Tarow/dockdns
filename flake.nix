@@ -6,6 +6,7 @@
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
   outputs = {
+    self,
     nixpkgs,
     nixpkgs-unstable,
     ...
@@ -49,6 +50,7 @@
 
         dockdns = pkgs.buildGoModule {
           name = "dockdns";
+          version = toString (self.shortRev or self.dirtyShortRev or self.lastModified or "unknown");
           buildInputs = nixpkgs.lib.lists.optionals pkgs.stdenv.isDarwin [pkgs.darwin.apple_sdk.frameworks.AppKit];
           src = lib.fileset.toSource {
             root = ./.;

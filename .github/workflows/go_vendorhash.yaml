@@ -26,7 +26,7 @@ jobs:
         uses: cachix/install-nix-action@v30
 
       - name: Update vendor hash
-        run: nix run .#nixpkgs.nix-update -- --flake --version=skip dockdns
+        run: nix run nixpkgs#nix-update -- --flake --version=skip dockdns
 
       - name: Check diff
         id: check-diff
