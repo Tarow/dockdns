@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/Tarow/dockdns/internal/constants"
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 )
@@ -31,7 +31,7 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 		filterArgs.Add("event", cet)
 	}
 
-	events, errs := d.client.Events(ctx, types.EventsOptions{Filters: filterArgs})
+	events, errs := d.client.Events(ctx, events.ListOptions{Filters: filterArgs})
 
 	for {
 		select {
