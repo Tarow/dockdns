@@ -8,7 +8,7 @@
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["before 2am on sunday"]
+    "schedule": "before 2am on sunday"
   },
   "platformAutomerge": true,
   "nix": {
