@@ -3,6 +3,8 @@
   "prHourlyLimit": 0,
   "extends": ["config:recommended"],
   "timezone": "Europe/Berlin",
+  "reviewers": ["Tarow"],
+  "gitIgnoredAuthors": ["195547385+tarow[bot]@users.noreply.github.com"],
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "lockFileMaintenance": {
     "enabled": true,

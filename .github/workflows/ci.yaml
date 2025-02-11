@@ -1,4 +1,4 @@
-name: Create and publish a Docker image
+name: General CI Pipeline
 
 on:
   push:
@@ -58,7 +58,8 @@ jobs:
         with:
           context: .
           file: docker/Dockerfile
-          push: true
+          push: ${{ !startsWith(github.ref_name, 'renovate/') }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
