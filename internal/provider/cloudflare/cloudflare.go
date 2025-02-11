@@ -21,8 +21,9 @@ func New(apiToken, zoneID string) (cloudflareProvider, error) {
 	return cloudflareProvider{
 		apiToken: apiToken,
 		zoneID:   zoneID,
-		service:  cfDns.NewRecordService(option.WithAPIToken(apiToken)),
+		service:  cfDns.NewRecordService(option.WithEnvironmentProduction(), option.WithAPIToken(apiToken)),
 	}, nil
+
 }
 
 func (cfp cloudflareProvider) List() ([]dns.Record, error) {
@@ -67,6 +68,9 @@ func (cfp cloudflareProvider) Get(domain, recordType string) (dns.Record, error)
 	records := cfp.service.ListAutoPaging(context.Background(), cfDns.RecordListParams{
 		ZoneID: cloudflare.F(cfp.zoneID),
 		Type:   cloudflare.F(cfDns.RecordListParamsType(recordType)),
+		Name: cloudflare.F(cfDns.RecordListParamsName{
+			Exact: cloudflare.F(domain),
+		}),
 	})
 	if records.Err() != nil {
 		return dns.Record{}, records.Err()

@@ -28,7 +28,7 @@ func (h Handler) updateRecords(provider Provider, domains []config.DomainRecord)
 func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, recordType string) {
 	existingRecord, err := provider.Get(domain.Name, recordType)
 	if err != nil {
-		slog.Error("failed to fetch existing record", "name", domain.Name, "type", recordType, "action", "skip record")
+		slog.Error("failed to fetch existing record", "name", domain.Name, "type", recordType, "action", "skip record", "error", err)
 		return
 	}
 	if isEqual(existingRecord, domain, recordType) {
