@@ -6,29 +6,24 @@ import (
 
 	"github.com/Tarow/dockdns/internal/constants"
 	"github.com/Tarow/dockdns/internal/dns"
-	"github.com/cloudflare/cloudflare-go"
+	"github.com/cloudflare/cloudflare-go/v4"
+	cfDns "github.com/cloudflare/cloudflare-go/v4/dns"
+	"github.com/cloudflare/cloudflare-go/v4/option"
 )
 
 type cloudflareProvider struct {
 	apiToken string
-	zoneID   *cloudflare.ResourceContainer
-	api      *cloudflare.API
+	zoneID   string
+	service  *cfDns.RecordService
 }
 
-func New(apiToken, zoneId string) (cloudflareProvider, error) {
-	api, err := cloudflare.NewWithAPIToken(apiToken)
-	if err != nil {
-		return cloudflareProvider{}, err
-	}
-
+func New(apiToken, zoneID string) (cloudflareProvider, error) {
 	return cloudflareProvider{
 		apiToken: apiToken,
-		zoneID: &cloudflare.ResourceContainer{
-			Type:       "zone",
-			Identifier: zoneId,
-		},
-		api: api,
+		zoneID:   zoneID,
+		service:  cfDns.NewRecordService(option.WithEnvironmentProduction(), option.WithAPIToken(apiToken)),
 	}, nil
+
 }
 
 func (cfp cloudflareProvider) List() ([]dns.Record, error) {
@@ -51,81 +46,87 @@ func (cfp cloudflareProvider) List() ([]dns.Record, error) {
 }
 
 func (cfp cloudflareProvider) list(recordType string) ([]dns.Record, error) {
-	var allRecords []cloudflare.DNSRecord
+	var allRecords []cfDns.RecordResponse
 
-	page := 1
-	perPage := 100
-	for {
-		records, resultInfo, err := cfp.api.ListDNSRecords(context.Background(), cfp.zoneID, cloudflare.ListDNSRecordsParams{
-			Type: recordType,
-			ResultInfo: cloudflare.ResultInfo{
-				Page:    page,
-				PerPage: perPage,
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
-		allRecords = append(allRecords, records...)
-		if resultInfo.Page == resultInfo.TotalPages {
-			return mapRecords(allRecords), nil
-		}
+	records := cfp.service.ListAutoPaging(context.Background(), cfDns.RecordListParams{
+		ZoneID:  cloudflare.F(cfp.zoneID),
+		Type:    cloudflare.F(cfDns.RecordListParamsType(recordType)),
+		PerPage: cloudflare.F(float64(100)),
+	})
 
-		page++
+	for records.Next() {
+		if records.Err() != nil {
+			return nil, records.Err()
+		}
+		allRecords = append(allRecords, records.Current())
 	}
+
+	return mapRecords(allRecords), nil
 }
 
 func (cfp cloudflareProvider) Get(domain, recordType string) (dns.Record, error) {
-	records, _, err := cfp.api.ListDNSRecords(context.Background(), cfp.zoneID, cloudflare.ListDNSRecordsParams{
-		Type: recordType,
-		Name: domain,
+	records := cfp.service.ListAutoPaging(context.Background(), cfDns.RecordListParams{
+		ZoneID: cloudflare.F(cfp.zoneID),
+		Type:   cloudflare.F(cfDns.RecordListParamsType(recordType)),
+		Name: cloudflare.F(cfDns.RecordListParamsName{
+			Exact: cloudflare.F(domain),
+		}),
 	})
-	if err != nil {
-		return dns.Record{}, err
+	if records.Err() != nil {
+		return dns.Record{}, records.Err()
 	}
-	if len(records) == 0 {
+	if !records.Next() {
 		return dns.Record{}, nil
 	}
-	return mapRecord(records[0]), nil
+	return mapRecord(records.Current()), nil
 }
 
 func (cfp cloudflareProvider) Create(record dns.Record) (dns.Record, error) {
-	createdRecord, err := cfp.api.CreateDNSRecord(context.Background(), cfp.zoneID, cloudflare.CreateDNSRecordParams{
-		Name:    record.Name,
-		Type:    record.Type,
-		Proxied: &record.Proxied,
-		TTL:     int(record.TTL),
-		Content: record.Content,
-		Comment: record.Comment,
+	createdRecord, err := cfp.service.New(context.Background(), cfDns.RecordNewParams{
+		ZoneID: cloudflare.F(cfp.zoneID),
+		Record: cfDns.RecordParam{
+			Name:    cloudflare.F(record.Name),
+			Type:    cloudflare.F(cfDns.RecordType(record.Type)),
+			Proxied: cloudflare.F(record.Proxied),
+			TTL:     cloudflare.F(cfDns.TTL(record.TTL)),
+			Content: cloudflare.F(record.Content),
+			Comment: cloudflare.F(record.Comment),
+		},
 	})
 
 	if err != nil {
 		return dns.Record{}, err
 	}
-	return mapRecord(createdRecord), nil
+	return mapRecord(*createdRecord), nil
 }
 
 func (cfp cloudflareProvider) Update(record dns.Record) (dns.Record, error) {
-	updatedRecord, err := cfp.api.UpdateDNSRecord(context.Background(), cfp.zoneID, cloudflare.UpdateDNSRecordParams{
-		ID:      record.ID,
-		Type:    record.Type,
-		Proxied: &record.Proxied,
-		TTL:     record.TTL,
-		Content: record.Content,
-		Comment: &record.Comment,
+	updatedRecord, err := cfp.service.Update(context.Background(), record.ID, cfDns.RecordUpdateParams{
+		ZoneID: cloudflare.F(cfp.zoneID),
+		Record: cfDns.RecordParam{
+			Name:    cloudflare.F(record.Name),
+			Type:    cloudflare.F(cfDns.RecordType(record.Type)),
+			Proxied: cloudflare.F(record.Proxied),
+			TTL:     cloudflare.F(cfDns.TTL(record.TTL)),
+			Content: cloudflare.F(record.Content),
+			Comment: cloudflare.F(record.Comment),
+		},
 	})
 
 	if err != nil {
 		return dns.Record{}, err
 	}
-	return mapRecord(updatedRecord), nil
+	return mapRecord(*updatedRecord), nil
 }
 
 func (cfp cloudflareProvider) Delete(record dns.Record) error {
-	return cfp.api.DeleteDNSRecord(context.Background(), cfp.zoneID, record.ID)
+	_, err := cfp.service.Delete(context.Background(), record.ID, cfDns.RecordDeleteParams{
+		ZoneID: cloudflare.F(cfp.zoneID),
+	})
+	return err
 }
 
-func mapRecords(records []cloudflare.DNSRecord) []dns.Record {
+func mapRecords(records []cfDns.RecordResponse) []dns.Record {
 	var mappedRecords []dns.Record
 
 	for _, record := range records {
@@ -135,18 +136,14 @@ func mapRecords(records []cloudflare.DNSRecord) []dns.Record {
 	return mappedRecords
 }
 
-func mapRecord(r cloudflare.DNSRecord) dns.Record {
-	var proxied bool
-	if r.Proxied != nil {
-		proxied = *r.Proxied
-	}
+func mapRecord(r cfDns.RecordResponse) dns.Record {
 	return dns.Record{
 		ID:      r.ID,
 		Name:    r.Name,
-		Type:    r.Type,
+		Type:    string(r.Type),
 		Content: r.Content,
-		Proxied: proxied,
-		TTL:     r.TTL,
+		Proxied: r.Proxied,
+		TTL:     int(r.TTL),
 		Comment: r.Comment,
 	}
 }
