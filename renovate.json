@@ -8,7 +8,8 @@
   "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* 0-3 * * 0"]
+    "schedule": ["* 0-3 * * 0"],
+    "automergeType": "branch"
   },
   "platformAutomerge": true,
   "nix": {
