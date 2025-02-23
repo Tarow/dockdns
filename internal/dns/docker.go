@@ -9,7 +9,6 @@ import (
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/constants"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 )
@@ -25,7 +24,7 @@ func (h Handler) filterDockerLabels() ([]config.DomainRecord, error) {
 	return parseContainerLabels(containers)
 }
 
-func parseContainerLabels(containers []types.Container) ([]config.DomainRecord, error) {
+func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord, error) {
 	var labelRecords []config.DomainRecord
 
 	for _, container := range containers {
@@ -42,7 +41,7 @@ func parseContainerLabels(containers []types.Container) ([]config.DomainRecord, 
 	return labelRecords, nil
 }
 
-func parseLabels(container types.Container, targetStruct *config.DomainRecord) error {
+func parseLabels(container container.Summary, targetStruct *config.DomainRecord) error {
 	containerLabels := container.Labels
 	targetValue := reflect.ValueOf(targetStruct)
 	if targetValue.Kind() != reflect.Ptr || targetValue.Elem().Kind() != reflect.Struct {
