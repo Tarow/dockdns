@@ -23,17 +23,18 @@
     devShells = forAllSystems (system: let
       pkgs = nixpkgs.legacyPackages.${system};
       unstable = nixpkgs-unstable.legacyPackages.${system};
-    in {
-      default = pkgs.mkShell {
-        packages = with pkgs;
-          [
+    in rec {
+      default = dockdns;
+      dockdns = pkgs.mkShell {
+        packages =
+          (with pkgs; [
             go
             golangci-lint
             air
             gopls
             gotools
             delve
-          ]
+          ])
           ++ (with unstable; [
             templ
           ]);
