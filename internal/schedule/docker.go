@@ -3,6 +3,7 @@ package schedule
 import (
 	"context"
 	"log/slog"
+	"time"
 
 	"github.com/Tarow/dockdns/internal/constants"
 	"github.com/docker/docker/api/types/events"
@@ -31,20 +32,34 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 		filterArgs.Add("event", cet)
 	}
 
-	events, errs := d.client.Events(ctx, events.ListOptions{Filters: filterArgs})
-
 	for {
-		select {
-		case <-ctx.Done():
-			slog.Debug("DockerEventTrigger received stop signal")
-			return
-		case <-events:
-			eventChan <- TriggerEvent{
-				Name: "DockerEventTrigger",
+		events, errs := d.client.Events(ctx, events.ListOptions{Filters: filterArgs})
+
+		for {
+			select {
+			case <-ctx.Done():
+				slog.Debug("DockerEventTrigger received stop signal")
+				return
+			case _, ok := <-events:
+				if !ok {
+					goto reconnect
+				} else {
+					eventChan <- TriggerEvent{
+						Name: "DockerEventTrigger",
+					}
+				}
+			case err, ok := <-errs:
+				if !ok {
+					goto reconnect
+				} else {
+					slog.Warn("Error listening to Docker events", "err", err)
+				}
+
 			}
-		case err := <-errs:
-			slog.Warn("Error listening to Docker events", "err", err)
 		}
+	reconnect:
+		slog.Warn("Docker event channel was closed. Trying to reconnect in 5 seconds")
+		time.Sleep(5 * time.Second)
 	}
 }
 
