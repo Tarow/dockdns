@@ -23,7 +23,7 @@ jobs:
           token: ${{ steps.generate_token.outputs.token }}
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@v31
 
       - name: Update vendor hash
         run: nix run nixpkgs#nix-update -- --flake --version=skip dockdns
