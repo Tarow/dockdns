@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/a-h/templ v0.3.833
-	github.com/cloudflare/cloudflare-go/v4 v4.1.0
+	github.com/cloudflare/cloudflare-go/v4 v4.2.0
 	github.com/docker/docker v28.0.1+incompatible
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 )
