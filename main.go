@@ -42,7 +42,7 @@ func main() {
 	slog.SetDefault(getLogger(appCfg.Log))
 	slog.Debug("Successfully read config", "config", appCfg)
 
-	if !(len(appCfg.Zones) > 0) {
+	if len(appCfg.Zones) < 1 {
 		slog.Error("no zone configuration found, exiting")
 		os.Exit(1)
 	}
