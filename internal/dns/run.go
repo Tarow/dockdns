@@ -49,7 +49,11 @@ func NewHandler(providers map[string]Provider, dnsDefaultCfg config.DNS,
 
 func (h *Handler) Run() error {
 	slog.Debug("starting dns update job")
-	staticDomains := h.staticDomains
+	
+	// Copy the static domains to avoid modifying the original config entries
+	staticDomains := make([]config.DomainRecord, len(h.staticDomains))
+	copy(staticDomains, h.staticDomains)
+
 	slog.Debug("static config", "domains", staticDomains)
 
 	var dockerDomains []config.DomainRecord
