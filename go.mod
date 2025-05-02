@@ -3,7 +3,7 @@ module github.com/Tarow/dockdns
 go 1.23.0
 
 require (
-	github.com/a-h/templ v0.3.857
+	github.com/a-h/templ v0.3.865
 	github.com/cloudflare/cloudflare-go/v4 v4.2.0
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/ilyakaznacheev/cleanenv v1.5.0
@@ -39,7 +39,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.34.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.27.0 // indirect
 	go.opentelemetry.io/otel/trace v1.34.0 // indirect
-	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
