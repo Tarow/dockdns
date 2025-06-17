@@ -84,9 +84,9 @@ func (cfp cloudflareProvider) Get(domain, recordType string) (dns.Record, error)
 func (cfp cloudflareProvider) Create(record dns.Record) (dns.Record, error) {
 	createdRecord, err := cfp.service.New(context.Background(), cfDns.RecordNewParams{
 		ZoneID: cloudflare.F(cfp.zoneID),
-		Record: cfDns.RecordParam{
+		Body: cfDns.RecordNewParamsBody{
 			Name:    cloudflare.F(record.Name),
-			Type:    cloudflare.F(cfDns.RecordType(record.Type)),
+			Type:    cloudflare.F(cfDns.RecordNewParamsBodyType(record.Type)),
 			Proxied: cloudflare.F(record.Proxied),
 			TTL:     cloudflare.F(cfDns.TTL(record.TTL)),
 			Content: cloudflare.F(record.Content),
@@ -103,9 +103,9 @@ func (cfp cloudflareProvider) Create(record dns.Record) (dns.Record, error) {
 func (cfp cloudflareProvider) Update(record dns.Record) (dns.Record, error) {
 	updatedRecord, err := cfp.service.Update(context.Background(), record.ID, cfDns.RecordUpdateParams{
 		ZoneID: cloudflare.F(cfp.zoneID),
-		Record: cfDns.RecordParam{
+		Body: cfDns.RecordUpdateParamsBody{
 			Name:    cloudflare.F(record.Name),
-			Type:    cloudflare.F(cfDns.RecordType(record.Type)),
+			Type:    cloudflare.F(cfDns.RecordUpdateParamsBodyType(record.Type)),
 			Proxied: cloudflare.F(record.Proxied),
 			TTL:     cloudflare.F(cfDns.TTL(record.TTL)),
 			Content: cloudflare.F(record.Content),
