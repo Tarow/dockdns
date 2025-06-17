@@ -104,3 +104,9 @@ services:
       - ./config.yaml:/app/config.yaml
       - /var/run/docker.sock:/var/run/docker.sock:ro
 ```
+
+### Nix
+
+```bash
+nix run github:Tarow/dockdns
+```
