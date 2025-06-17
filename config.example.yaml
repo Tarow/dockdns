@@ -11,8 +11,8 @@ log:
 zones:
   - name: somedomain.com
     provider: cloudflare
-    apiToken: ...
-    zoneID: ...
+    apiToken: ... # Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
+    zoneID: ... # Can also be passed as environment variable: SOMEDOMAIN_COM_ZONE_ID
 
 dns:
   a: true

@@ -1,6 +1,12 @@
 package config
 
-import "github.com/Tarow/dockdns/internal/constants"
+import (
+	"os"
+	"regexp"
+	"strings"
+
+	"github.com/Tarow/dockdns/internal/constants"
+)
 
 type AppConfig struct {
 	Interval        int       `yaml:"interval" env-default:"600"`
@@ -11,6 +17,27 @@ type AppConfig struct {
 	Zones           Zones     `yaml:"zones"`
 	DNS             DNS       `yaml:"dns"`
 	Domains         Domains   `yaml:"domains"`
+}
+
+func (c *AppConfig) EnrichZoneSecretsFromEnv() {
+	sanitizeRegexp := regexp.MustCompile(`[^a-zA-Z0-9]`)
+
+	for i, zone := range c.Zones {
+		envZoneName := strings.ToUpper(sanitizeRegexp.ReplaceAllString(zone.Name, "_"))
+
+		if zone.ApiToken == "" {
+			e := envZoneName + "_API_TOKEN"
+			if val, ok := os.LookupEnv(e); ok {
+				c.Zones[i].ApiToken = val
+			}
+		}
+		if zone.ZoneID == "" {
+			e := envZoneName + "_ZONE_ID"
+			if val, ok := os.LookupEnv(e); ok {
+				c.Zones[i].ZoneID = val
+			}
+		}
+	}
 }
 
 type LogFormat string

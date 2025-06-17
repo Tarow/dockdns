@@ -32,8 +32,8 @@ log:
 zones: # Zone configuration (multiple zones can be provided)
   - name: somedomain.com # Root name of the zone
     provider: cloudflare # Name of the provider. Currently only Cloudflare is supported
-    apiToken: ... # API Token, needs permission 'Zone.Zone' (read) and Zone.DNS (edit)
-    zoneID: ... # ZoneID of this zone
+    apiToken: ... # API Token, needs permission 'Zone.Zone' (read) and Zone.DNS (edit). Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
+    zoneID: ... # ZoneID of this zone. Can also be passed as environment variable: SOMEDOMAIN_COM_ZONE_ID
 
 dns:
   a: true # Update IPv4 addresses

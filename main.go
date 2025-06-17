@@ -35,6 +35,7 @@ func main() {
 
 	var appCfg config.AppConfig
 	err := cleanenv.ReadConfig(configPath, &appCfg)
+	appCfg.EnrichZoneSecretsFromEnv()
 	if err != nil {
 		slog.Error("Failed to read config", "path", configPath, "error", err)
 		os.Exit(1)
