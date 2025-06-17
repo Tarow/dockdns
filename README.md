@@ -108,5 +108,5 @@ services:
 ### Nix
 
 ```bash
-nix run github:Tarow/dockdns
+nix run github:tarow/dockdns
 ```
