@@ -40,7 +40,7 @@ func FetchZoneID(apiToken string, domain string) (string, error) {
 			return zones.Current().ID, nil
 		}
 	}
-	return "", fmt.Errorf("No zone found for domain %s", domain)
+	return "", fmt.Errorf("no zone found for domain %s", domain)
 }
 
 func (cfp cloudflareProvider) List() ([]dns.Record, error) {

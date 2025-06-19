@@ -22,7 +22,7 @@ var providers = map[string]func(*config.Zone) (dns.Provider, error){
 			slog.Debug("zone id not set. Trying to fetch it dynamically", "zone", zoneCfg.Name)
 			zoneID, err := cloudflare.FetchZoneID(zoneCfg.ApiToken, zoneCfg.Name)
 			if err != nil {
-				return nil, fmt.Errorf("No zone id set for domain %s and could not fetch it: %w", zoneCfg.Name, err)
+				return nil, fmt.Errorf("no zone id set for domain %s and could not fetch it: %w", zoneCfg.Name, err)
 			}
 			slog.Debug("Fetched zone id", "domain", zoneCfg.Name, "zoneID", zoneID)
 			zoneCfg.ZoneID = zoneID
