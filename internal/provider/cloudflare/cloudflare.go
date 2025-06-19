@@ -2,6 +2,7 @@ package cloudflare
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/Tarow/dockdns/internal/constants"
@@ -9,6 +10,7 @@ import (
 	"github.com/cloudflare/cloudflare-go/v4"
 	cfDns "github.com/cloudflare/cloudflare-go/v4/dns"
 	"github.com/cloudflare/cloudflare-go/v4/option"
+	"github.com/cloudflare/cloudflare-go/v4/zones"
 )
 
 type cloudflareProvider struct {
@@ -23,7 +25,22 @@ func New(apiToken, zoneID string) (cloudflareProvider, error) {
 		zoneID:   zoneID,
 		service:  cfDns.NewRecordService(option.WithEnvironmentProduction(), option.WithAPIToken(apiToken)),
 	}, nil
+}
 
+func FetchZoneID(apiToken string, domain string) (string, error) {
+	service := zones.NewZoneService(option.WithEnvironmentProduction(), option.WithAPIToken(apiToken))
+	zones := service.ListAutoPaging(context.Background(), zones.ZoneListParams{
+		Name: cloudflare.F(domain),
+	})
+	for zones.Next() {
+		if zones.Err() != nil {
+			return "", zones.Err()
+		}
+		if zones.Current().Name == domain {
+			return zones.Current().ID, nil
+		}
+	}
+	return "", fmt.Errorf("No zone found for domain %s", domain)
 }
 
 func (cfp cloudflareProvider) List() ([]dns.Record, error) {

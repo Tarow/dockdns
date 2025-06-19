@@ -53,7 +53,7 @@ func main() {
 	}
 	providers := map[string]dns.Provider{}
 	for _, zone := range appCfg.Zones {
-		dnsProvider, err := provider.Get(zone, dryRun)
+		dnsProvider, err := provider.Get(&zone, dryRun)
 		if err != nil {
 			slog.Error("Failed to create DNS provider", "zone", zone.Name, "error", err)
 			os.Exit(1)
