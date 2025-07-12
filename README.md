@@ -1,3 +1,7 @@
+![Build](https://github.com/tarow/dockdns/actions/workflows/ci.yaml/badge.svg)
+[![go report](https://goreportcard.com/badge/github.com/Tarow/dockdns)](https://goreportcard.com/report/github.com/Tarow/dockdns)
+[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen.svg)](https://renovatebot.com)
+
 # DockDNS - (Dynamic) DNS Client based on Docker Labels
 
 DockDNS is a DNS updater, which supports configuring DNS records through Docker labels.
