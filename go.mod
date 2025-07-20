@@ -3,7 +3,7 @@ module github.com/Tarow/dockdns
 go 1.23.0
 
 require (
-	github.com/a-h/templ v0.3.906
+	github.com/a-h/templ v0.3.920
 	github.com/cloudflare/cloudflare-go/v4 v4.6.0
 	github.com/docker/docker v28.3.2+incompatible
 	github.com/ilyakaznacheev/cleanenv v1.5.0
