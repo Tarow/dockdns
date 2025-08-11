@@ -38,7 +38,13 @@ zones: # Zone configuration (multiple zones can be provided)
     provider: cloudflare # Name of the provider. Currently only Cloudflare is supported
     apiToken: ... # API Token, needs permission 'Zone.Zone' (read) and Zone.DNS (edit). Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
     zoneID: ... # Optional: If not set, will be fetched dynamically. ZoneID of this zone. Can also be passed as environment variable: SOMEDOMAIN_COM_ZONE_ID
-
+  - name: somedomain.com # Root name of the zone
+    provider: rfc2136 # Any DNS server that complies with RFC2136 Dynamic Updates
+    apiHost: dns.somedomain.com # Host of DNS server, eg 1.1.1.1 or dns.example.com
+    apiPort: 53
+    apiToken: superSecret # The "Secret" associated with RFC2136 config
+    tsigName: keyName # The "Name" associated with secret
+    tsigAlgo: HMAC-SHA256 # The algorithm used with secret
 dns:
   a: true # Update IPv4 addresses
   aaaa: false # Update IPv6 addresses

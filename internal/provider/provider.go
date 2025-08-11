@@ -39,7 +39,7 @@ var providers = map[string]func(*config.Zone) (dns.Provider, error){
 			zoneCfg.ApiToken == "" ||
 			zoneCfg.TsigAlgo == "" ||
 			zoneCfg.Name == "" {
-			return nil, fmt.Errorf("RFC2136 provider requires ApiHost, ApiPort, TsigName, ApiToken (TsigSecret), TsigAlgo, Name (zone) to be set.")
+			return nil, fmt.Errorf("RFC2136 provider requires ApiHost, ApiPort, TsigName, ApiToken (TsigSecret), TsigAlgo, Name (zone) to be set.  Got zoneCfg: %v", zoneCfg)
 		}
 		return rfc2136.New(
 			zoneCfg.ApiHost,
