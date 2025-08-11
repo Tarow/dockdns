@@ -8,10 +8,12 @@ import (
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider/cloudflare"
+	"github.com/Tarow/dockdns/internal/provider/rfc2136"
 )
 
 const (
 	Cloudflare = "cloudflare"
+	Rfc2136    = "rfc2136"
 )
 
 type ProviderCreator func(config.Zone) (dns.Provider, error)
@@ -29,6 +31,23 @@ var providers = map[string]func(*config.Zone) (dns.Provider, error){
 		}
 
 		return cloudflare.New(zoneCfg.ApiToken, zoneCfg.ZoneID)
+	},
+	Rfc2136: func(zoneCfg *config.Zone) (dns.Provider, error) {
+		if zoneCfg.ApiHost == "" ||
+			zoneCfg.ApiPort == "" ||
+			zoneCfg.TsigName == "" ||
+			zoneCfg.ApiToken == "" ||
+			zoneCfg.TsigAlgo == "" ||
+			zoneCfg.Name == "" {
+			return nil, fmt.Errorf("RFC2136 provider requires ApiHost, ApiPort, TsigName, ApiToken (TsigSecret), TsigAlgo, Name (zone) to be set.")
+		}
+		return rfc2136.New(
+			zoneCfg.ApiHost,
+			zoneCfg.ApiPort,
+			zoneCfg.TsigName,
+			zoneCfg.ApiToken,
+			zoneCfg.TsigAlgo,
+			zoneCfg.Name), nil
 	},
 }
 

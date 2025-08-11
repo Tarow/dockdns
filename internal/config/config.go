@@ -52,10 +52,24 @@ type LogConfig struct {
 
 type Zones []Zone
 type Zone struct {
+	// Shared
 	Provider string `yaml:"provider"`
-	Name     string `yaml:"name"`
+
+	// For all providers, the domain name / zone name
+	Name string `yaml:"name"`
+
+	// For cloudflare, the API token with Zone:Edit permission
+	// For rfc2136, the TSIG-KEY-SECRET
 	ApiToken string `yaml:"apiToken"`
-	ZoneID   string `yaml:"zoneID"`
+
+	// RFC2136 specific
+	ApiHost  string `yaml:"apiUrl,omitempty"`   // For rfc2136, the DNS server address
+	ApiPort  string `yaml:"apiPort,omitempty"`  // For rfc2136, the DNS server port
+	TsigName string `yaml:"tsigName,omitempty"` // For rfc2136, the TSIG key name
+	TsigAlgo string `yaml:"keyAlgo,omitempty"`  // For rfc2136, the TSIG algorithm
+
+	// Cloudflare specific
+	ZoneID string `yaml:"zoneID,omitempty"`
 }
 
 type DNS struct {

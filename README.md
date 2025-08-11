@@ -119,3 +119,10 @@ nix run github:tarow/dockdns
 
 Note: To avoid direct socket access, you can also set environment variable `DOCKER_HOST`.
 For example, if you use [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy), you may set the environment variable `DOCKER_HOST=tcp://docker-socket-proxy:2375`.
+
+## Development
+
+You need:
+
+* Go 1.23
+* Templ
