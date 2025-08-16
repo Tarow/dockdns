@@ -41,9 +41,15 @@ var providers = map[string]func(*config.Zone) (dns.Provider, error){
 			zoneCfg.Name == "" {
 			return nil, fmt.Errorf("RFC2136 provider requires ApiHost, ApiPort, TsigName, ApiToken (TsigSecret), TsigAlgo, Name (zone) to be set.  Got zoneCfg: %v", zoneCfg)
 		}
+		// Default to UDP if protocol not specified
+		protocol := zoneCfg.Protocol
+		if protocol == "" {
+			protocol = "udp"
+		}
 		return rfc2136.New(
 			zoneCfg.ApiHost,
 			zoneCfg.ApiPort,
+			protocol,
 			zoneCfg.TsigName,
 			zoneCfg.ApiToken,
 			zoneCfg.TsigAlgo,

@@ -65,6 +65,7 @@ type Zone struct {
 	// RFC2136 specific
 	ApiHost  string `yaml:"apiHost,omitempty"`  // For rfc2136, the DNS server address
 	ApiPort  string `yaml:"apiPort,omitempty"`  // For rfc2136, the DNS server port
+	Protocol string `yaml:"protocol,omitempty"` // For rfc2136, the protocol (tcp or udp, defaults to udp)
 	TsigName string `yaml:"tsigName,omitempty"` // For rfc2136, the TSIG key name
 	TsigAlgo string `yaml:"tsigAlgo,omitempty"` // For rfc2136, the TSIG algorithm
 

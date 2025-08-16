@@ -11,16 +11,18 @@ import (
 type rfc2136Provider struct {
 	server     string
 	port       string
+	protocol   string
 	tsigName   string
 	tsigSecret string
 	tsigAlgo   string
 	zone       string
 }
 
-func New(server, port, tsigName, tsigSecret, tsigAlgo, zone string) rfc2136Provider {
+func New(server, port, protocol, tsigName, tsigSecret, tsigAlgo, zone string) rfc2136Provider {
 	return rfc2136Provider{
 		server:     server,
 		port:       port,
+		protocol:   protocol,
 		tsigName:   tsigName,
 		tsigSecret: tsigSecret,
 		tsigAlgo:   tsigAlgo,
@@ -47,6 +49,7 @@ func (p rfc2136Provider) Create(record internalDns.Record) (internalDns.Record, 
 	m.Insert([]dns.RR{rr})
 	m.SetTsig(p.tsigName, p.tsigAlgo, 300, time.Now().Unix())
 	c := new(dns.Client)
+	c.Net = p.protocol
 	c.TsigSecret = map[string]string{p.tsigName: p.tsigSecret}
 	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
 	if err != nil {
@@ -69,6 +72,7 @@ func (p rfc2136Provider) Delete(record internalDns.Record) error {
 	m.Remove([]dns.RR{rr})
 	m.SetTsig(p.tsigName, p.tsigAlgo, 300, time.Now().Unix())
 	c := new(dns.Client)
+	c.Net = p.protocol
 	c.TsigSecret = map[string]string{p.tsigName: p.tsigSecret}
 	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
 	if err != nil {
@@ -93,6 +97,7 @@ func (p rfc2136Provider) Get(domain, recordType string) (internalDns.Record, err
 	m := new(dns.Msg)
 	m.SetQuestion(fqdn(domain, p.zone), dns.StringToType[recordType])
 	c := new(dns.Client)
+	c.Net = p.protocol
 	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
 	if err != nil {
 		return internalDns.Record{}, err
