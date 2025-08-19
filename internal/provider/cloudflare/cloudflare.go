@@ -7,10 +7,10 @@ import (
 
 	"github.com/Tarow/dockdns/internal/constants"
 	"github.com/Tarow/dockdns/internal/dns"
-	"github.com/cloudflare/cloudflare-go/v4"
-	cfDns "github.com/cloudflare/cloudflare-go/v4/dns"
-	"github.com/cloudflare/cloudflare-go/v4/option"
-	"github.com/cloudflare/cloudflare-go/v4/zones"
+	"github.com/cloudflare/cloudflare-go/v5"
+	cfDns "github.com/cloudflare/cloudflare-go/v5/dns"
+	"github.com/cloudflare/cloudflare-go/v5/option"
+	"github.com/cloudflare/cloudflare-go/v5/zones"
 )
 
 type cloudflareProvider struct {
