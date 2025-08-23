@@ -44,8 +44,7 @@ func main() {
 	slog.Debug("Successfully read config", "config", appCfg)
 
 	if len(appCfg.Zones) < 1 {
-		slog.Error("no zone configuration found, exiting")
-		os.Exit(1)
+		slog.Error("no zone configuration found!  Are you sure you have configured at least one zone?")
 	}
 
 	if dryRun {

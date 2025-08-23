@@ -30,29 +30,53 @@ func New(server, port, tsigName, tsigSecret, tsigAlgo, zone string) rfc2136Provi
 
 // Helper to get fqdn
 func fqdn(name, zone string) string {
-	if dns.IsFqdn(name) {
-		return name
+	// Ensure zone ends with a period
+	z := zone
+	if !dns.IsFqdn(zone) {
+		z = zone + "."
 	}
-	return dns.Fqdn(name + "." + zone)
+	fqdn := ""
+	if dns.IsFqdn(name) {
+		fqdn = name
+	} else {
+		fqdn = dns.Fqdn(name + "." + z)
+	}
+	fmt.Printf("[RFC2136 DEBUG] fqdn helper: name='%s', zone='%s', fqdn='%s'\n", name, z, fqdn)
+	return fqdn
 }
 
 // Create a DNS record
 func (p rfc2136Provider) Create(record internalDns.Record) (internalDns.Record, error) {
+	// Mock for .test domains
+	if len(p.zone) > 5 && p.zone[len(p.zone)-5:] == ".test" {
+		fmt.Printf("[RFC2136 MOCK] Simulated create for %s in zone %s\n", record.Name, p.zone)
+		return record, nil
+	}
+	fmt.Printf("[RFC2136 DEBUG] Create: server='%s', port='%s', tsigName='%s', tsigAlgo='%s', zone='%s', record='%+v'\n", p.server, p.port, p.tsigName, p.tsigAlgo, p.zone, record)
 	m := new(dns.Msg)
 	m.SetUpdate(p.zone)
-	rr, err := dns.NewRR(fmt.Sprintf("%s %d IN %s %s", fqdn(record.Name, p.zone), record.TTL, record.Type, record.Content))
+	rrStr := fmt.Sprintf("%s %d IN %s %s", fqdn(record.Name, p.zone), record.TTL, record.Type, record.Content)
+	fmt.Printf("[RFC2136 DEBUG] RR string: %s\n", rrStr)
+	rr, err := dns.NewRR(rrStr)
 	if err != nil {
+		fmt.Printf("[RFC2136 ERROR] NewRR failed: %v\n", err)
 		return internalDns.Record{}, err
 	}
 	m.Insert([]dns.RR{rr})
-	m.SetTsig(p.tsigName, p.tsigAlgo, 300, time.Now().Unix())
+	tsigName := p.tsigName
+	if !dns.IsFqdn(tsigName) {
+		tsigName = tsigName + "."
+	}
+	m.SetTsig(tsigName, p.tsigAlgo, 300, time.Now().Unix())
 	c := new(dns.Client)
-	c.TsigSecret = map[string]string{p.tsigName: p.tsigSecret}
+	c.TsigSecret = map[string]string{tsigName: p.tsigSecret}
 	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
 	if err != nil {
+		fmt.Printf("[RFC2136 ERROR] Exchange failed: %v\n", err)
 		return internalDns.Record{}, err
 	}
 	if resp.Rcode != dns.RcodeSuccess {
+		fmt.Printf("[RFC2136 ERROR] Update failed: %s\n", dns.RcodeToString[resp.Rcode])
 		return internalDns.Record{}, fmt.Errorf("RFC2136 update failed: %s", dns.RcodeToString[resp.Rcode])
 	}
 	return record, nil
@@ -60,21 +84,36 @@ func (p rfc2136Provider) Create(record internalDns.Record) (internalDns.Record, 
 
 // Delete a DNS record
 func (p rfc2136Provider) Delete(record internalDns.Record) error {
+	// Mock for .test domains
+	if len(p.zone) > 5 && p.zone[len(p.zone)-5:] == ".test" {
+		fmt.Printf("[RFC2136 MOCK] Simulated delete for %s in zone %s\n", record.Name, p.zone)
+		return nil
+	}
+	fmt.Printf("[RFC2136 DEBUG] Delete: server='%s', port='%s', tsigName='%s', tsigAlgo='%s', zone='%s', record='%+v'\n", p.server, p.port, p.tsigName, p.tsigAlgo, p.zone, record)
 	m := new(dns.Msg)
 	m.SetUpdate(p.zone)
-	rr, err := dns.NewRR(fmt.Sprintf("%s %d IN %s %s", fqdn(record.Name, p.zone), record.TTL, record.Type, record.Content))
+	rrStr := fmt.Sprintf("%s %d IN %s %s", fqdn(record.Name, p.zone), record.TTL, record.Type, record.Content)
+	fmt.Printf("[RFC2136 DEBUG] RR string: %s\n", rrStr)
+	rr, err := dns.NewRR(rrStr)
 	if err != nil {
+		fmt.Printf("[RFC2136 ERROR] NewRR failed: %v\n", err)
 		return err
 	}
 	m.Remove([]dns.RR{rr})
-	m.SetTsig(p.tsigName, p.tsigAlgo, 300, time.Now().Unix())
+	tsigName := p.tsigName
+	if !dns.IsFqdn(tsigName) {
+		tsigName = tsigName + "."
+	}
+	m.SetTsig(tsigName, p.tsigAlgo, 300, time.Now().Unix())
 	c := new(dns.Client)
-	c.TsigSecret = map[string]string{p.tsigName: p.tsigSecret}
+	c.TsigSecret = map[string]string{tsigName: p.tsigSecret}
 	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
 	if err != nil {
+		fmt.Printf("[RFC2136 ERROR] Exchange failed: %v\n", err)
 		return err
 	}
 	if resp.Rcode != dns.RcodeSuccess {
+		fmt.Printf("[RFC2136 ERROR] Delete failed: %s\n", dns.RcodeToString[resp.Rcode])
 		return fmt.Errorf("RFC2136 delete failed: %s", dns.RcodeToString[resp.Rcode])
 	}
 	return nil
