@@ -2,177 +2,122 @@ package rfc2136
 
 import (
 	"fmt"
-	"time"
-
-	internalDns "github.com/Tarow/dockdns/internal/dns"
+	"strings"
 	"github.com/miekg/dns"
+	internalDns "github.com/Tarow/dockdns/internal/dns"
+	"github.com/go-acme/lego/v4/providers/dns/rfc2136"
 )
 
-type rfc2136Provider struct {
-	server     string
-	port       string
-	protocol   string
-	tsigName   string
-	tsigSecret string
-	tsigAlgo   string
+// Alias for compatibility with tests and other code
+type Rfc2136Provider = LegoRFC2136Provider
+
+type LegoRFC2136Provider struct {
+	Provider   *rfc2136.DNSProvider
 	zone       string
+	nameserver string
 }
 
-func New(server, port, protocol, tsigName, tsigSecret, tsigAlgo, zone string) rfc2136Provider {
-	return rfc2136Provider{
-		server:     server,
-		port:       port,
-		protocol:   protocol,
-		tsigName:   tsigName,
-		tsigSecret: tsigSecret,
-		tsigAlgo:   tsigAlgo,
-		zone:       zone,
-	}
-}
-
-// Helper to get fqdn
-func fqdn(name, zone string) string {
-	// Ensure zone ends with a period
-	z := zone
-	if !dns.IsFqdn(zone) {
-		z = zone + "."
-	}
-	fqdn := ""
-	if dns.IsFqdn(name) {
-		fqdn = name
-	} else {
-		fqdn = dns.Fqdn(name + "." + z)
-	}
-	fmt.Printf("[RFC2136 DEBUG] fqdn helper: name='%s', zone='%s', fqdn='%s'\n", name, z, fqdn)
-	return fqdn
-}
-
-// Create a DNS record
-func (p rfc2136Provider) Create(record internalDns.Record) (internalDns.Record, error) {
-	// Mock for .test domains
-	if len(p.zone) > 5 && p.zone[len(p.zone)-5:] == ".test" {
-		fmt.Printf("[RFC2136 MOCK] Simulated create for %s in zone %s\n", record.Name, p.zone)
-		return record, nil
-	}
-	fmt.Printf("[RFC2136 DEBUG] Create: server='%s', port='%s', tsigName='%s', tsigAlgo='%s', zone='%s', record='%+v'\n", p.server, p.port, p.tsigName, p.tsigAlgo, p.zone, record)
-	m := new(dns.Msg)
-	m.SetUpdate(p.zone)
-	rrStr := fmt.Sprintf("%s %d IN %s %s", fqdn(record.Name, p.zone), record.TTL, record.Type, record.Content)
-	fmt.Printf("[RFC2136 DEBUG] RR string: %s\n", rrStr)
-	rr, err := dns.NewRR(rrStr)
+func New(server, port, protocol, tsigName, tsigSecret, tsigAlgo, zone string) LegoRFC2136Provider {
+	config := rfc2136.NewDefaultConfig()
+	config.Nameserver = fmt.Sprintf("%s:%s", server, port)
+	config.TSIGKey = tsigName
+	config.TSIGSecret = tsigSecret
+	config.TSIGAlgorithm = tsigAlgo
+	// TTL and other config can be set here if needed
+	provider, err := rfc2136.NewDNSProviderConfig(config)
 	if err != nil {
-		fmt.Printf("[RFC2136 ERROR] NewRR failed: %v\n", err)
-		return internalDns.Record{}, err
+		panic(fmt.Sprintf("Failed to create lego RFC2136 provider: %v", err))
 	}
-	m.Insert([]dns.RR{rr})
-	tsigName := p.tsigName
-	if !dns.IsFqdn(tsigName) {
-		tsigName = tsigName + "."
+       return LegoRFC2136Provider{
+	       Provider: provider,
+	       zone:     zone,
+	       nameserver: fmt.Sprintf("%s:%s", server, port),
+       }
+}
+
+func (p LegoRFC2136Provider) List() ([]internalDns.Record, error) {
+       // Query all TXT records in the zone using miekg/dns
+       var records []internalDns.Record
+       m := new(dns.Msg)
+       m.SetQuestion(dns.Fqdn(p.zone), dns.TypeTXT)
+       c := new(dns.Client)
+	resp, _, err := c.Exchange(m, p.nameserver)
+       if err != nil {
+	       return nil, fmt.Errorf("DNS query failed: %v", err)
+       }
+       for _, ans := range resp.Answer {
+	       if txt, ok := ans.(*dns.TXT); ok {
+		       name := strings.TrimSuffix(txt.Hdr.Name, ".")
+		       for _, txtVal := range txt.Txt {
+			       records = append(records, internalDns.Record{
+				       Name:    name,
+				       Type:    "TXT",
+				       Content: txtVal,
+				       TTL:     int(txt.Hdr.Ttl),
+			       })
+		       }
+	       }
+       }
+       return records, nil
+}
+
+func (p LegoRFC2136Provider) Get(domain, recordType string) (internalDns.Record, error) {
+       // Query a specific record in the zone using miekg/dns
+       if recordType != "TXT" {
+	       return internalDns.Record{}, fmt.Errorf("only TXT records are supported")
+       }
+       fqdn := dns.Fqdn(domain + "." + p.zone)
+       m := new(dns.Msg)
+       m.SetQuestion(fqdn, dns.TypeTXT)
+       c := new(dns.Client)
+	resp, _, err := c.Exchange(m, p.nameserver)
+       if err != nil {
+	       return internalDns.Record{}, fmt.Errorf("DNS query failed: %v", err)
+       }
+       for _, ans := range resp.Answer {
+	       if txt, ok := ans.(*dns.TXT); ok {
+		       name := strings.TrimSuffix(txt.Hdr.Name, ".")
+		       for _, txtVal := range txt.Txt {
+			       return internalDns.Record{
+				       Name:    name,
+				       Type:    "TXT",
+				       Content: txtVal,
+				       TTL:     int(txt.Hdr.Ttl),
+			       }, nil
+		       }
+	       }
+       }
+       return internalDns.Record{}, fmt.Errorf("TXT record not found for domain: %s", domain)
+}
+
+func (p LegoRFC2136Provider) Create(record internalDns.Record) (internalDns.Record, error) {
+	// Only TXT records are supported by lego
+	if record.Type != "TXT" {
+		return internalDns.Record{}, fmt.Errorf("lego RFC2136 only supports TXT records")
 	}
-	m.SetTsig(tsigName, p.tsigAlgo, 300, time.Now().Unix())
-	c := new(dns.Client)
-	c.Net = p.protocol
-	c.TsigSecret = map[string]string{p.tsigName: p.tsigSecret}
-	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
+	err := p.Provider.Present(record.Name+"."+p.zone, "", record.Content)
 	if err != nil {
-		fmt.Printf("[RFC2136 ERROR] Exchange failed: %v\n", err)
 		return internalDns.Record{}, err
-	}
-	if resp.Rcode != dns.RcodeSuccess {
-		fmt.Printf("[RFC2136 ERROR] Update failed: %s\n", dns.RcodeToString[resp.Rcode])
-		return internalDns.Record{}, fmt.Errorf("RFC2136 update failed: %s", dns.RcodeToString[resp.Rcode])
 	}
 	return record, nil
 }
 
-// Delete a DNS record
-func (p rfc2136Provider) Delete(record internalDns.Record) error {
-	// Mock for .test domains
-	if len(p.zone) > 5 && p.zone[len(p.zone)-5:] == ".test" {
-		fmt.Printf("[RFC2136 MOCK] Simulated delete for %s in zone %s\n", record.Name, p.zone)
-		return nil
-	}
-	fmt.Printf("[RFC2136 DEBUG] Delete: server='%s', port='%s', tsigName='%s', tsigAlgo='%s', zone='%s', record='%+v'\n", p.server, p.port, p.tsigName, p.tsigAlgo, p.zone, record)
-	m := new(dns.Msg)
-	m.SetUpdate(p.zone)
-	rrStr := fmt.Sprintf("%s %d IN %s %s", fqdn(record.Name, p.zone), record.TTL, record.Type, record.Content)
-	fmt.Printf("[RFC2136 DEBUG] RR string: %s\n", rrStr)
-	rr, err := dns.NewRR(rrStr)
+func (p LegoRFC2136Provider) Update(record internalDns.Record) (internalDns.Record, error) {
+	// For RFC2136, update is delete then create
+	err := p.Delete(record)
 	if err != nil {
-		fmt.Printf("[RFC2136 ERROR] NewRR failed: %v\n", err)
-		return err
-	}
-	m.Remove([]dns.RR{rr})
-	tsigName := p.tsigName
-	if !dns.IsFqdn(tsigName) {
-		tsigName = tsigName + "."
-	}
-	m.SetTsig(tsigName, p.tsigAlgo, 300, time.Now().Unix())
-	c := new(dns.Client)
-	c.Net = p.protocol
-	c.TsigSecret = map[string]string{p.tsigName: p.tsigSecret}
-	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
-	if err != nil {
-		fmt.Printf("[RFC2136 ERROR] Exchange failed: %v\n", err)
-		return err
-	}
-	if resp.Rcode != dns.RcodeSuccess {
-		fmt.Printf("[RFC2136 ERROR] Delete failed: %s\n", dns.RcodeToString[resp.Rcode])
-		return fmt.Errorf("RFC2136 delete failed: %s", dns.RcodeToString[resp.Rcode])
-	}
-	return nil
-}
-
-// Update a DNS record (delete old, add new)
-func (p rfc2136Provider) Update(record internalDns.Record) (internalDns.Record, error) {
-	if err := p.Delete(record); err != nil {
 		return internalDns.Record{}, err
 	}
 	return p.Create(record)
 }
 
-// Get a DNS record (query)
-func (p rfc2136Provider) Get(domain, recordType string) (internalDns.Record, error) {
-	m := new(dns.Msg)
-	m.SetQuestion(fqdn(domain, p.zone), dns.StringToType[recordType])
-	c := new(dns.Client)
-	c.Net = p.protocol
-	resp, _, err := c.Exchange(m, fmt.Sprintf("%s:%s", p.server, p.port))
+func (p LegoRFC2136Provider) Delete(record internalDns.Record) error {
+	if record.Type != "TXT" {
+		return fmt.Errorf("lego RFC2136 only supports TXT records")
+	}
+	err := p.Provider.CleanUp(record.Name+"."+p.zone, "", record.Content)
 	if err != nil {
-		return internalDns.Record{}, err
+		return err
 	}
-	for _, rr := range resp.Answer {
-		if rr.Header().Name == fqdn(domain, p.zone) && dns.TypeToString[rr.Header().Rrtype] == recordType {
-			return internalDns.Record{
-				Name:    domain,
-				Type:    recordType,
-				Content: rr.String(), // You may want to parse this further
-				TTL:     int(rr.Header().Ttl),
-			}, nil
-		}
-	}
-	return internalDns.Record{}, nil
-}
-
-// List records (zone transfer, AXFR)
-func (p rfc2136Provider) List() ([]internalDns.Record, error) {
-	m := new(dns.Msg)
-	m.SetAxfr(p.zone)
-	t := new(dns.Transfer)
-	resp, err := t.In(m, fmt.Sprintf("%s:%s", p.server, p.port))
-	if err != nil {
-		return nil, err
-	}
-	var records []internalDns.Record
-	for rr := range resp {
-		for _, r := range rr.RR {
-			records = append(records, internalDns.Record{
-				Name:    r.Header().Name,
-				Type:    dns.TypeToString[r.Header().Rrtype],
-				Content: r.String(), // You may want to parse this further
-				TTL:     int(r.Header().Ttl),
-			})
-		}
-	}
-	return records, nil
+	return nil
 }

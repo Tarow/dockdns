@@ -5,7 +5,7 @@
 # DockDNS - (Dynamic) DNS Client based on Docker Labels
 
 DockDNS is a DNS updater, which supports configuring DNS records through Docker labels.
-Currently DockDNS only supports Cloudflare as a DNS provider.
+DockDNS supports Cloudflare and RFC2136-compliant DNS servers as providers.
 
 ## Features
 
@@ -16,6 +16,7 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 - IPv4 & IPv6 support
 - CNAME support
 - Supports multiple zones
+- RFC2136 provider: supports querying (List/Get) and updating TXT records
 - Automatically trigger DNS updates when labeled containers start & stop
 
 ## Configuration
@@ -35,16 +36,39 @@ log:
 
 zones: # Zone configuration (multiple zones can be provided)
   - name: somedomain.com # Root name of the zone
-    provider: cloudflare # Name of the provider. Currently only Cloudflare is supported
+  provider: cloudflare # Name of the provider. Supported: cloudflare, rfc2136
+## RFC2136 Provider
+
+DockDNS supports any DNS server that implements RFC2136 Dynamic Updates. This allows integration with BIND, Knot, PowerDNS, and other standards-compliant DNS servers.
+
+Example zone configuration:
+
+```yaml
+zones:
+  - name: somedomain.com
+    provider: rfc2136
+    apiHost: dns.somedomain.com
+    apiPort: 53
+    apiToken: superSecret # TSIG Secret
+    tsigName: keyName # TSIG Key Name
+    tsigAlgo: HMAC-SHA256 # TSIG Key Algorithm
+```
+
+### Supported Operations
+- Create, Update, Delete TXT records (for DNS-01 challenges and dynamic TXT entries)
+- List all TXT records in a zone
+- Get a specific TXT record by name
+
+> Note: Listing and querying records uses DNS queries and does not require API access. Only TXT records are supported for RFC2136 operations.
     apiToken: ... # API Token, needs permission 'Zone.Zone' (read) and Zone.DNS (edit). Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
     zoneID: ... # Optional: If not set, will be fetched dynamically. ZoneID of this zone. Can also be passed as environment variable: SOMEDOMAIN_COM_ZONE_ID
   - name: somedomain.com # Root name of the zone
     provider: rfc2136 # Any DNS server that complies with RFC2136 Dynamic Updates
-    apiHost: dns.somedomain.com # Host of DNS server, eg 1.1.1.1 or dns.example.com
-    apiPort: 53
-    apiToken: superSecret # The "Secret" associated with RFC2136 config
-    tsigName: keyName # The "Name" associated with secret
-    tsigAlgo: HMAC-SHA256 # The algorithm used with secret
+    apiHost: dns.somedomain.com # Host of DNS server, eg mydnsserver.mydomain.com
+    apiPort: 53 # The tcp port of the DNS server
+    apiToken: superSecret # TSIG Secret
+    tsigName: keyName # TSIG Key Name
+    tsigAlgo: HMAC-SHA256 # TSIG Key Algorithm
 dns:
   a: true # Update IPv4 addresses
   aaaa: false # Update IPv6 addresses
