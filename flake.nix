@@ -51,6 +51,7 @@
 
         dockdns = pkgs.buildGoModule {
           name = "dockdns";
+          pname = "dockdns";
           version = toString (self.shortRev or self.dirtyShortRev or self.lastModified or "unknown");
           buildInputs = nixpkgs.lib.lists.optionals pkgs.stdenv.isDarwin [pkgs.darwin.apple_sdk.frameworks.AppKit];
           src = lib.fileset.toSource {
