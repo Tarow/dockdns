@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/constants"
@@ -35,7 +36,14 @@ func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord
 			continue
 		}
 
-		labelRecords = append(labelRecords, record)
+		// Name label can have multiple comma separated domains. Create a record for all of them
+		domains := strings.Split(record.Name, ",")
+		for _, domain := range domains {
+			r := record
+			r.Name = domain
+			labelRecords = append(labelRecords, r)
+		}
+
 	}
 
 	return labelRecords, nil

@@ -74,6 +74,12 @@ Supported labels:
 
 ---
 
+The `dockdns.name` label can also contain a comma separated list of names, e.g.
+
+```ini
+dockdns.name="somedomain.com,www.somedomain.com"
+```
+
 If no explicit IP address is set, the public IP will be fetched and set automatically (DynDNS).
 If a `CNAME` is set, `A` and `AAAA` settings are ignored.
 
