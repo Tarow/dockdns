@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -71,19 +72,25 @@ func createRecord(domain config.DomainRecord, recordType string) Record {
 func isEqual(record Record, domain config.DomainRecord, recordType string) bool {
 	content := domain.GetContent(recordType)
 
+	title := fmt.Sprintf("Detected diff for record %v", record.Name)
+
 	if record.Content != content {
+		slog.Debug(title, "attribute", "content", "old", record.Content, "new", content)
 		return false
 	}
 
 	if record.Name != domain.Name {
+		slog.Debug(title, "attribute", "name", "old", record.Name, "new", domain.Name)
 		return false
 	}
 
 	if record.Proxied != domain.Proxied {
+		slog.Debug(title, "attribute", "proxied", "old", record.Proxied, "new", domain.Proxied)
 		return false
 	}
 
 	if record.Comment != domain.Comment {
+		slog.Debug(title, "attribute", "comment", "old", record.Comment, "new", domain.Comment)
 		return false
 	}
 

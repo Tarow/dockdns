@@ -40,10 +40,11 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 			case <-ctx.Done():
 				slog.Debug("DockerEventTrigger received stop signal")
 				return
-			case _, ok := <-events:
+			case e, ok := <-events:
 				if !ok {
 					goto reconnect
 				} else {
+					slog.Debug("Received docker event", "event", e)
 					eventChan <- TriggerEvent{
 						Name: "DockerEventTrigger",
 					}
