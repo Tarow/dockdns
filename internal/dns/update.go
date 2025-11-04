@@ -71,11 +71,11 @@ func createRecord(domain config.DomainRecord, recordType string) Record {
 func isEqual(record Record, domain config.DomainRecord, recordType string) bool {
 	content := domain.GetContent(recordType)
 
-	if record.Content != content {
+	if !strings.EqualFold(record.Content, content) {
 		return false
 	}
 
-	if record.Name != domain.Name {
+	if !strings.EqualFold(record.Name, domain.Name) {
 		return false
 	}
 
