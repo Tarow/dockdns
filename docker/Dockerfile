@@ -13,7 +13,7 @@ COPY static/ static/
 
 RUN CGO_ENABLED=0 go build
 
-FROM alpine:3.22
+FROM alpine:3.23
 
 WORKDIR /app
 COPY --from=builder /app/dockdns /usr/bin/dockdns
