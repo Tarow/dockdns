@@ -1,1 +1,0 @@
-../copilot/docs.prompt.md

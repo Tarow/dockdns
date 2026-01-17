@@ -6,6 +6,8 @@ services:
       context: ../
       dockerfile: ./docker/Dockerfile
     restart: unless-stopped
+    environment:
+      - HOST_HOSTNAME=${HOSTNAME}  # Pass the host machine's hostname to the container
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../config.yaml:/app/config.yaml

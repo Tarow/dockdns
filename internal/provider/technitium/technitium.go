@@ -68,9 +68,19 @@ type rData struct {
 // generateDockDNSComment creates a standardized comment for Technitium DNS records
 // that identifies the record as managed by DockDNS and provides context about its origin.
 func generateDockDNSComment(record dns.Record) string {
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = "unknown"
+	// Try to get the physical host hostname from environment variable first
+	// This allows the container to report the actual host machine's name
+	// when HOST_HOSTNAME or HOSTNAME_OVERRIDE is set (e.g., via docker run -e HOST_HOSTNAME=$(hostname))
+	hostname := os.Getenv("HOST_HOSTNAME")
+	if hostname == "" {
+		hostname = os.Getenv("HOSTNAME_OVERRIDE")
+	}
+	if hostname == "" {
+		var err error
+		hostname, err = os.Hostname()
+		if err != nil {
+			hostname = "unknown"
+		}
 	}
 
 	timestamp := time.Now().UTC().Format(time.RFC3339)

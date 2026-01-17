@@ -1,1 +1,0 @@
-../copilot/provider.prompt.md
