@@ -1,0 +1,31 @@
+interval: -1  # One-shot mode for testing
+debounceTime: 10
+maxDebounceTime: 600
+
+webUI: false
+
+log:
+  level: debug
+  format: simple
+
+zones:
+  - name: test.local
+    provider: technitium
+    apiURL: http://localhost:5380
+    apiUsername: admin
+    apiPassword: admin
+
+dns:
+  a: true
+  aaaa: false
+  defaultTTL: 300
+  purgeUnknown: false
+
+domains:
+  - name: "www.test.local"
+    a: 192.168.1.100
+    comment: "Test record"
+  - name: "api.test.local"
+    a: 192.168.1.101
+  - name: "alias.test.local"
+    cname: "www.test.local"
