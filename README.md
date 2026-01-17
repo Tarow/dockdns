@@ -136,7 +136,7 @@ dockdns -config /path/to/config.yaml
 ### Docker
 
 ```bash
-docker run -v ./config.yaml:/app/config.yaml -v /var/run/docker.sock:/var/run/docker.sock:ro ghcr.io/tarow/dockdns:latest
+docker run -e HOST_HOSTNAME=$(hostname) -v ./config.yaml:/app/config.yaml -v /var/run/docker.sock:/var/run/docker.sock:ro ghcr.io/tarow/dockdns:latest
 ```
 
 ### Docker Compose
@@ -146,6 +146,8 @@ services:
   dockdns:
     image: ghcr.io/tarow/dockdns:latest
     restart: unless-stopped
+    environment:
+      - HOST_HOSTNAME=${HOSTNAME}  # Pass host machine's hostname to container
     volumes:
       - ./config.yaml:/app/config.yaml
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -161,6 +163,14 @@ nix run github:tarow/dockdns
 
 Note: To avoid direct socket access, you can also set environment variable `DOCKER_HOST`.
 For example, if you use [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy), you may set the environment variable `DOCKER_HOST=tcp://docker-socket-proxy:2375`.
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DOCKER_HOST` | Docker daemon socket (e.g., `tcp://docker-socket-proxy:2375`) |
+| `HOST_HOSTNAME` | Physical host machine's hostname. Used in Technitium DNS record comments to identify which host created the record. Set to `$(hostname)` when running in Docker. |
+| `HOSTNAME_OVERRIDE` | Alternative to `HOST_HOSTNAME` for setting the hostname in record comments. |
 
 ## Development
 
