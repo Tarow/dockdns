@@ -4,7 +4,7 @@ services:
     image: ghcr.io/tarow/dockdns:main
     restart: unless-stopped
     environment:
-      - HOST_HOSTNAME=${HOSTNAME}  # Pass the host machine's hostname to the container
+      - HOST_HOSTNAME=myserver1  # Set to the actual hostname of this server
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ../config.yaml:/app/config.yaml

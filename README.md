@@ -136,7 +136,8 @@ dockdns -config /path/to/config.yaml
 ### Docker
 
 ```bash
-docker run -e HOST_HOSTNAME=$(hostname) -v ./config.yaml:/app/config.yaml -v /var/run/docker.sock:/var/run/docker.sock:ro ghcr.io/tarow/dockdns:latest
+# Set HOST_HOSTNAME to the actual hostname of the server
+docker run -e HOST_HOSTNAME=servarr -v ./config.yaml:/app/config.yaml -v /var/run/docker.sock:/var/run/docker.sock:ro ghcr.io/tarow/dockdns:latest
 ```
 
 ### Docker Compose
@@ -147,7 +148,7 @@ services:
     image: ghcr.io/tarow/dockdns:latest
     restart: unless-stopped
     environment:
-      - HOST_HOSTNAME=${HOSTNAME}  # Pass host machine's hostname to container
+      - HOST_HOSTNAME=servarr  # Set to the actual hostname of this server
     volumes:
       - ./config.yaml:/app/config.yaml
       - /var/run/docker.sock:/var/run/docker.sock:ro
