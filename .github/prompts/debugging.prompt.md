@@ -1,0 +1,1 @@
+../copilot/debugging.prompt.md

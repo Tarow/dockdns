@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/constants"
@@ -27,12 +28,20 @@ func (h Handler) filterDockerLabels() ([]config.DomainRecord, error) {
 func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord, error) {
 	var labelRecords []config.DomainRecord
 
-	for _, container := range containers {
+	for _, ctr := range containers {
 		var record config.DomainRecord
-		err := parseLabels(container, &record)
+		err := parseLabels(ctr, &record)
 		if err != nil {
-			slog.Warn("error parsing label configuration, skipping container", "container", container.Names, "error", err)
+			slog.Warn("error parsing label configuration, skipping container", "container", ctr.Names, "error", err)
 			continue
+		}
+
+		// Set container metadata for tracking record origin
+		record.Source = "docker"
+		record.ContainerID = getShortContainerID(ctr.ID)
+		if len(ctr.Names) > 0 {
+			// Container names start with '/', remove it
+			record.ContainerName = strings.TrimPrefix(ctr.Names[0], "/")
 		}
 
 		labelRecords = append(labelRecords, record)
@@ -41,8 +50,16 @@ func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord
 	return labelRecords, nil
 }
 
-func parseLabels(container container.Summary, targetStruct *config.DomainRecord) error {
-	containerLabels := container.Labels
+// getShortContainerID returns the first 12 characters of a container ID
+func getShortContainerID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
+}
+
+func parseLabels(ctr container.Summary, targetStruct *config.DomainRecord) error {
+	containerLabels := ctr.Labels
 	targetValue := reflect.ValueOf(targetStruct)
 	if targetValue.Kind() != reflect.Ptr || targetValue.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("targetStruct must be a pointer to a struct")
@@ -65,7 +82,50 @@ func parseLabels(container container.Summary, targetStruct *config.DomainRecord)
 		}
 	}
 
+	// Parse provider-specific overrides (e.g., dockdns.cname.technitium, dockdns.proxied.cloudflare)
+	parseProviderOverrides(containerLabels, targetStruct)
+
 	return nil
+}
+
+const (
+	cnameOverridePrefix   = "dockdns.cname."
+	proxiedOverridePrefix = "dockdns.proxied."
+)
+
+// parseProviderOverrides extracts provider/zone-specific overrides from container labels.
+// Labels like "dockdns.cname.<zone-id>=internal.example.com" override the CNAME for that zone.
+// Labels like "dockdns.proxied.<zone-id>=true" override the proxied setting for that zone.
+// The zone ID is the value of the zone's 'id' field in config, or the zone name if 'id' is not set.
+func parseProviderOverrides(labels map[string]string, record *config.DomainRecord) {
+	for label, value := range labels {
+		// Parse CNAME overrides (e.g., dockdns.cname.technitium-internal=internal.example.com)
+		if strings.HasPrefix(label, cnameOverridePrefix) && label != "dockdns.cname" {
+			zoneID := strings.TrimPrefix(label, cnameOverridePrefix)
+			if zoneID != "" && value != "" {
+				if record.CNameOverrides == nil {
+					record.CNameOverrides = make(map[string]string)
+				}
+				record.CNameOverrides[zoneID] = value
+			}
+		}
+
+		// Parse Proxied overrides (e.g., dockdns.proxied.cloudflare-prod=true)
+		if strings.HasPrefix(label, proxiedOverridePrefix) && label != "dockdns.proxied" {
+			zoneID := strings.TrimPrefix(label, proxiedOverridePrefix)
+			if zoneID != "" && value != "" {
+				boolValue, err := strconv.ParseBool(value)
+				if err != nil {
+					slog.Warn("invalid boolean value for proxied override", "label", label, "value", value)
+					continue
+				}
+				if record.ProxiedOverrides == nil {
+					record.ProxiedOverrides = make(map[string]bool)
+				}
+				record.ProxiedOverrides[zoneID] = boolValue
+			}
+		}
+	}
 }
 
 func setFieldValue(field reflect.Value, labelValue string) error {

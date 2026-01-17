@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -62,6 +63,41 @@ type rData struct {
 	IPAddress string `json:"ipAddress,omitempty"` // For A and AAAA records
 	Value     string `json:"value,omitempty"`     // For CNAME records
 	CName     string `json:"cname,omitempty"`     // Alternative CNAME field
+}
+
+// generateDockDNSComment creates a standardized comment for Technitium DNS records
+// that identifies the record as managed by DockDNS and provides context about its origin.
+func generateDockDNSComment(record dns.Record) string {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+
+	// Build the comment with available metadata
+	parts := []string{
+		"[DockDNS]",
+		fmt.Sprintf("host=%s", hostname),
+		fmt.Sprintf("updated=%s", timestamp),
+	}
+
+	// Add source-specific information
+	if record.Source == "docker" {
+		parts = append(parts, "source=docker")
+		if record.ContainerID != "" {
+			parts = append(parts, fmt.Sprintf("container_id=%s", record.ContainerID))
+		}
+		if record.ContainerName != "" {
+			parts = append(parts, fmt.Sprintf("container_name=%s", record.ContainerName))
+		}
+	} else if record.Source == "static" {
+		parts = append(parts, "source=static")
+	} else {
+		parts = append(parts, "source=dockdns")
+	}
+
+	return strings.Join(parts, " | ")
 }
 
 // New creates a new TechnitiumProvider.
@@ -367,9 +403,10 @@ func (p *TechnitiumProvider) Create(record dns.Record) (dns.Record, error) {
 	data.Set("type", record.Type)
 	data.Set("ttl", fmt.Sprintf("%d", record.TTL))
 
-	if record.Comment != "" {
-		data.Set("comments", record.Comment)
-	}
+	// Generate DockDNS comment for Technitium to identify managed records
+	comment := generateDockDNSComment(record)
+	data.Set("comments", comment)
+	record.Comment = comment
 
 	switch record.Type {
 	case constants.RecordTypeA, constants.RecordTypeAAAA:
@@ -427,9 +464,10 @@ func (p *TechnitiumProvider) Update(record dns.Record) (dns.Record, error) {
 	data.Set("type", record.Type)
 	data.Set("ttl", fmt.Sprintf("%d", record.TTL))
 
-	if record.Comment != "" {
-		data.Set("comments", record.Comment)
-	}
+	// Generate DockDNS comment for Technitium to identify managed records
+	comment := generateDockDNSComment(record)
+	data.Set("comments", comment)
+	record.Comment = comment
 
 	switch record.Type {
 	case constants.RecordTypeA, constants.RecordTypeAAAA:

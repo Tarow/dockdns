@@ -9,12 +9,15 @@ log:
   format: simple
 
 zones:
+  # Cloudflare zone with custom ID for override lookups
   - name: somedomain.com
+    id: cloudflare-prod           # Optional: custom ID for override labels (defaults to zone name if not set)
     provider: cloudflare
     apiToken: ... # Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
     zoneID: 
-  # Example Technitium DNS configuration
+  # Example Technitium DNS configuration with custom ID
   - name: internal.example.com
+    id: technitium-internal       # Optional: custom ID for override labels
     provider: technitium
     apiURL: http://192.168.1.10:5380  # Technitium DNS Server URL
     # Option 1: Use API token (recommended)
@@ -36,6 +39,18 @@ domains:
 
   - name: "somedomain.com"
     a: 10.0.0.2
+    proxied: true  # Enable Cloudflare proxy for this domain
 
   - name: "alt.somedomain.com"
     cname: "main.somedomain.com"
+
+  # Example with provider-specific overrides
+  # Different CNAME targets per zone, and proxied only on Cloudflare
+  # Override keys should match the zone's 'id' field (or zone name if 'id' is not set)
+  - name: "app.somedomain.com"
+    cname: "default-target.somedomain.com"
+    cnameOverrides:
+      technitium-internal: "internal-target.local"  # Use different CNAME for Technitium zone
+    proxied: false  # Default: not proxied
+    proxiedOverrides:
+      cloudflare-prod: true  # Enable Cloudflare proxy for this zone

@@ -5,7 +5,7 @@
 # DockDNS - (Dynamic) DNS Client based on Docker Labels
 
 DockDNS is a DNS updater, which supports configuring DNS records through Docker labels.
-DockDNS supports Cloudflare, RFC2136-compliant DNS servers, and Technitium DNS Server as providers.
+DockDNS supports Cloudflare and Technitium DNS Server as providers.
 
 ## Features
 
@@ -16,7 +16,7 @@ DockDNS supports Cloudflare, RFC2136-compliant DNS servers, and Technitium DNS S
 - IPv4 & IPv6 support
 - CNAME support
 - Supports multiple zones
-- RFC2136 provider: supports querying (List/Get) and updating TXT records
+- Provider-specific overrides for CNAME and Proxied settings
 - Automatically trigger DNS updates when labeled containers start & stop
 
 ## Configuration
@@ -36,30 +36,8 @@ log:
 
 zones: # Zone configuration (multiple zones can be provided)
   - name: somedomain.com # Root name of the zone
-  provider: cloudflare # Name of the provider. Supported: cloudflare, rfc2136, technitium
-## RFC2136 Provider
-
-DockDNS supports any DNS server that implements RFC2136 Dynamic Updates. This allows integration with BIND, Knot, PowerDNS, and other standards-compliant DNS servers.
-
-Example zone configuration:
-
-```yaml
-zones:
-  - name: somedomain.com
-    provider: rfc2136
-    apiHost: dns.somedomain.com
-    apiPort: 53
-    apiToken: superSecret # TSIG Secret
-    tsigName: keyName # TSIG Key Name
-    tsigAlgo: HMAC-SHA256 # TSIG Key Algorithm
-```
-
-### Supported Operations
-- Create, Update, Delete TXT records (for DNS-01 challenges and dynamic TXT entries)
-- List all TXT records in a zone
-- Get a specific TXT record by name
-
-> Note: Listing and querying records uses DNS queries and does not require API access. Only TXT records are supported for RFC2136 operations.
+    id: cloudflare-prod # Optional: custom ID for override labels (defaults to zone name if not set)
+    provider: cloudflare # Name of the provider. Supported: cloudflare, technitium
 
 ## Technitium DNS Provider
 
@@ -70,10 +48,15 @@ Example zone configuration:
 ```yaml
 zones:
   - name: internal.example.com
+    id: technitium-internal           # Optional: custom ID for override labels
     provider: technitium
     apiURL: http://192.168.1.10:5380  # Technitium DNS Server URL
-    apiUsername: admin                 # Technitium username
-    apiPassword: admin                 # Technitium password
+    # Option 1: Use API token (recommended)
+    apiToken: ...                      # Technitium API token
+    # Option 2: Use username/password (if no apiToken is set)
+    # apiUsername: admin               # Technitium username
+    # apiPassword: ...                 # Technitium password
+    # skipTLSVerify: true              # Skip TLS certificate verification (for self-signed certs)
 ```
 
 ### Supported Operations
@@ -82,16 +65,9 @@ zones:
 - Get a specific record by name and type
 - Automatic authentication and session management
 
-> Note: The Technitium provider uses the HTTP API and requires a user account with appropriate permissions. The default admin credentials should be changed for security.
+> Note: The Technitium provider uses the HTTP API and requires either an API token or a user account with appropriate permissions.
     apiToken: ... # API Token, needs permission 'Zone.Zone' (read) and Zone.DNS (edit). Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
     zoneID: ... # Optional: If not set, will be fetched dynamically. ZoneID of this zone. Can also be passed as environment variable: SOMEDOMAIN_COM_ZONE_ID
-  - name: somedomain.com # Root name of the zone
-    provider: rfc2136 # Any DNS server that complies with RFC2136 Dynamic Updates
-    apiHost: dns.somedomain.com # Host of DNS server, eg mydnsserver.mydomain.com
-    apiPort: 53 # The tcp port of the DNS server
-    apiToken: superSecret # TSIG Secret
-    tsigName: keyName # TSIG Key Name
-    tsigAlgo: HMAC-SHA256 # TSIG Key Algorithm
 dns:
   a: true # Update IPv4 addresses
   aaaa: false # Update IPv6 addresses
@@ -109,21 +85,34 @@ domains:
 
   - name: "alt.somedomain.com" # Name of the CNAME record
     cname: "main.somedomain.com" # Target of the CNAME record
+
+  # Example with provider-specific overrides
+  - name: "app.somedomain.com"
+    cname: "default-target.somedomain.com"
+    cnameOverrides:
+      technitium-internal: "internal-target.local"  # Different CNAME for Technitium zone
+    proxied: false
+    proxiedOverrides:
+      cloudflare-prod: true  # Enable Cloudflare proxy for this zone
 ```
 
 ## Dynamic Domains
 
 Domains can also be configured using Docker labels.
 Supported labels:
-| Label | Example |
-|-----------------|-----------------------------|
-| dockdns.name | dockdns.name=somedomain.com |
-| dockdns.a | dockdns.a=127.0.0.1 |
-| dockdns.aaaa | dockdns.aaaa=::1 |
-| dockdns.cname | dockdns.cname=target.otherdomain.com |
-| dockdns.ttl | dockdns.ttl=600 |
-| dockdns.proxied | dockdns.proxied=false |
-| dockdns.comment | dockdns.comment=Some comment |
+| Label | Example | Description |
+|----------------------|-------------------------------------------|-------------|
+| dockdns.name | dockdns.name=somedomain.com | Domain name (required) |
+| dockdns.a | dockdns.a=127.0.0.1 | Static IPv4 address |
+| dockdns.aaaa | dockdns.aaaa=::1 | Static IPv6 address |
+| dockdns.cname | dockdns.cname=target.otherdomain.com | CNAME target |
+| dockdns.ttl | dockdns.ttl=600 | Record TTL |
+| dockdns.proxied | dockdns.proxied=false | Cloudflare proxy (default) |
+| dockdns.comment | dockdns.comment=Some comment | Record comment |
+| dockdns.cname.\<id\> | dockdns.cname.technitium-internal=target.local | Zone-specific CNAME override |
+| dockdns.proxied.\<id\> | dockdns.proxied.cloudflare-prod=true | Zone-specific proxied override |
+
+The `<id>` in override labels should match the zone's `id` field (or zone `name` if `id` is not set).
 
 ---
 
