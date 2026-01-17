@@ -134,6 +134,12 @@ func (p *TechnitiumProvider) getToken() string {
 }
 
 func (p *TechnitiumProvider) doRequest(method, endpoint string, data url.Values) ([]byte, error) {
+	return p.doRequestWithRetry(method, endpoint, data, 0)
+}
+
+func (p *TechnitiumProvider) doRequestWithRetry(method, endpoint string, data url.Values, retryCount int) ([]byte, error) {
+	const maxRetries = 1 // Only retry once for invalid token
+
 	token := p.getToken()
 	if token == "" {
 		if err := p.login(); err != nil {
@@ -182,12 +188,15 @@ func (p *TechnitiumProvider) doRequest(method, endpoint string, data url.Values)
 	var apiResp apiResponse
 	if err := json.Unmarshal(body, &apiResp); err == nil {
 		if apiResp.Status == "invalid-token" {
-			slog.Debug("Token expired, re-logging in", "zone", p.zone)
+			if retryCount >= maxRetries {
+				return nil, fmt.Errorf("authentication failed after %d retries: invalid token", maxRetries)
+			}
+			slog.Debug("Token expired, re-logging in", "zone", p.zone, "retry", retryCount+1)
 			if err := p.login(); err != nil {
-				return nil, err
+				return nil, fmt.Errorf("re-login failed: %w", err)
 			}
 			// Retry request with new token
-			return p.doRequest(method, endpoint, data)
+			return p.doRequestWithRetry(method, endpoint, data, retryCount+1)
 		}
 		if apiResp.Status == "error" {
 			return nil, fmt.Errorf("API error: %s", apiResp.ErrorMessage)

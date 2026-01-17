@@ -23,20 +23,25 @@ done
 # Additional wait for DNS server to be fully initialized
 sleep 5
 
+# Default credentials for Technitium
+ADMIN_USER="admin"
+ADMIN_PASS="${TECHNITIUM_PASSWORD:-admin123}"
+
 # Create the test zone in Technitium
 echo "Creating test zone in Technitium..."
-# First, let's login and get a token
+# Login and get a token
 TOKEN=$(curl -s -X POST "http://localhost:5380/api/user/login" \
-  -d "user=admin&pass=admin" | jq -r '.token')
+  -d "user=$ADMIN_USER&pass=$ADMIN_PASS" | jq -r '.token')
 
 if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-  echo "Failed to login to Technitium. Using default password..."
-  # Try with the password from env var
-  TOKEN=$(curl -s -X POST "http://localhost:5380/api/user/login" \
-    -d "user=admin&pass=admin123" | jq -r '.token')
+  echo "Failed to login to Technitium with credentials user=$ADMIN_USER"
+  echo "Cleaning up..."
+  cd test/technitium
+  docker-compose down -v
+  exit 1
 fi
 
-echo "Token: $TOKEN"
+echo "Successfully logged in. Token: ${TOKEN:0:20}..."
 
 # Create the zone
 echo "Creating test.local zone..."

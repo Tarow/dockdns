@@ -13,7 +13,7 @@ zones:
     provider: technitium
     apiURL: http://localhost:5380
     apiUsername: admin
-    apiPassword: admin
+    apiPassword: admin123
 
 dns:
   a: true
