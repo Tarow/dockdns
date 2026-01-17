@@ -22,6 +22,12 @@ zones:
     tsigName: update-key
     tsigAlgo: hmac-sha256
     apiToken: ... # TSIG secret key
+  # Example Technitium DNS configuration
+  - name: internal.example.com
+    provider: technitium
+    apiURL: http://192.168.1.10:5380  # Technitium DNS Server URL
+    apiUsername: admin                 # Technitium username
+    apiPassword: ...                   # Technitium password (can be passed as environment variable)
 
 dns:
   a: true

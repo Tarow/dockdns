@@ -5,7 +5,7 @@
 # DockDNS - (Dynamic) DNS Client based on Docker Labels
 
 DockDNS is a DNS updater, which supports configuring DNS records through Docker labels.
-DockDNS supports Cloudflare and RFC2136-compliant DNS servers as providers.
+DockDNS supports Cloudflare, RFC2136-compliant DNS servers, and Technitium DNS Server as providers.
 
 ## Features
 
@@ -36,7 +36,7 @@ log:
 
 zones: # Zone configuration (multiple zones can be provided)
   - name: somedomain.com # Root name of the zone
-  provider: cloudflare # Name of the provider. Supported: cloudflare, rfc2136
+  provider: cloudflare # Name of the provider. Supported: cloudflare, rfc2136, technitium
 ## RFC2136 Provider
 
 DockDNS supports any DNS server that implements RFC2136 Dynamic Updates. This allows integration with BIND, Knot, PowerDNS, and other standards-compliant DNS servers.
@@ -60,6 +60,29 @@ zones:
 - Get a specific TXT record by name
 
 > Note: Listing and querying records uses DNS queries and does not require API access. Only TXT records are supported for RFC2136 operations.
+
+## Technitium DNS Provider
+
+DockDNS supports Technitium DNS Server through its HTTP API. This allows full management of A, AAAA, and CNAME records.
+
+Example zone configuration:
+
+```yaml
+zones:
+  - name: internal.example.com
+    provider: technitium
+    apiURL: http://192.168.1.10:5380  # Technitium DNS Server URL
+    apiUsername: admin                 # Technitium username
+    apiPassword: admin                 # Technitium password
+```
+
+### Supported Operations
+- Create, Update, Delete A, AAAA, and CNAME records
+- List all records in a zone
+- Get a specific record by name and type
+- Automatic authentication and session management
+
+> Note: The Technitium provider uses the HTTP API and requires a user account with appropriate permissions. The default admin credentials should be changed for security.
     apiToken: ... # API Token, needs permission 'Zone.Zone' (read) and Zone.DNS (edit). Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
     zoneID: ... # Optional: If not set, will be fetched dynamically. ZoneID of this zone. Can also be passed as environment variable: SOMEDOMAIN_COM_ZONE_ID
   - name: somedomain.com # Root name of the zone

@@ -71,6 +71,11 @@ type Zone struct {
 
 	// Cloudflare specific
 	ZoneID string `yaml:"zoneID,omitempty"`
+
+	// Technitium specific
+	ApiURL      string `yaml:"apiURL,omitempty"`      // For technitium, the API URL (e.g., http://localhost:5380)
+	ApiUsername string `yaml:"apiUsername,omitempty"` // For technitium, the username for authentication
+	ApiPassword string `yaml:"apiPassword,omitempty"` // For technitium, the password for authentication
 }
 
 type DNS struct {

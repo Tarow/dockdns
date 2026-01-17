@@ -9,11 +9,13 @@ import (
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider/cloudflare"
 	"github.com/Tarow/dockdns/internal/provider/rfc2136"
+	"github.com/Tarow/dockdns/internal/provider/technitium"
 )
 
 const (
 	Cloudflare = "cloudflare"
 	Rfc2136    = "rfc2136"
+	Technitium = "technitium"
 )
 
 type ProviderCreator func(config.Zone) (dns.Provider, error)
@@ -54,6 +56,19 @@ var providers = map[string]func(*config.Zone) (dns.Provider, error){
 			zoneCfg.ApiToken,
 			zoneCfg.TsigAlgo,
 			zoneCfg.Name), nil
+	},
+	Technitium: func(zoneCfg *config.Zone) (dns.Provider, error) {
+		if zoneCfg.ApiURL == "" ||
+			zoneCfg.ApiUsername == "" ||
+			zoneCfg.ApiPassword == "" ||
+			zoneCfg.Name == "" {
+			return nil, fmt.Errorf("Technitium provider requires ApiURL, ApiUsername, ApiPassword, and Name (zone) to be set. Got zoneCfg: %v", zoneCfg)
+		}
+		return technitium.New(
+			zoneCfg.ApiURL,
+			zoneCfg.ApiUsername,
+			zoneCfg.ApiPassword,
+			zoneCfg.Name)
 	},
 }
 

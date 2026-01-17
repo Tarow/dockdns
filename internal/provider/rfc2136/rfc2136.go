@@ -2,10 +2,10 @@ package rfc2136
 
 import (
 	"fmt"
-	"strings"
-	"github.com/miekg/dns"
 	internalDns "github.com/Tarow/dockdns/internal/dns"
 	"github.com/go-acme/lego/v4/providers/dns/rfc2136"
+	"github.com/miekg/dns"
+	"strings"
 )
 
 // Alias for compatibility with tests and other code
@@ -28,66 +28,66 @@ func New(server, port, protocol, tsigName, tsigSecret, tsigAlgo, zone string) Le
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create lego RFC2136 provider: %v", err))
 	}
-       return LegoRFC2136Provider{
-	       Provider: provider,
-	       zone:     zone,
-	       nameserver: fmt.Sprintf("%s:%s", server, port),
-       }
+	return LegoRFC2136Provider{
+		Provider:   provider,
+		zone:       zone,
+		nameserver: fmt.Sprintf("%s:%s", server, port),
+	}
 }
 
 func (p LegoRFC2136Provider) List() ([]internalDns.Record, error) {
-       // Query all TXT records in the zone using miekg/dns
-       var records []internalDns.Record
-       m := new(dns.Msg)
-       m.SetQuestion(dns.Fqdn(p.zone), dns.TypeTXT)
-       c := new(dns.Client)
+	// Query all TXT records in the zone using miekg/dns
+	var records []internalDns.Record
+	m := new(dns.Msg)
+	m.SetQuestion(dns.Fqdn(p.zone), dns.TypeTXT)
+	c := new(dns.Client)
 	resp, _, err := c.Exchange(m, p.nameserver)
-       if err != nil {
-	       return nil, fmt.Errorf("DNS query failed: %v", err)
-       }
-       for _, ans := range resp.Answer {
-	       if txt, ok := ans.(*dns.TXT); ok {
-		       name := strings.TrimSuffix(txt.Hdr.Name, ".")
-		       for _, txtVal := range txt.Txt {
-			       records = append(records, internalDns.Record{
-				       Name:    name,
-				       Type:    "TXT",
-				       Content: txtVal,
-				       TTL:     int(txt.Hdr.Ttl),
-			       })
-		       }
-	       }
-       }
-       return records, nil
+	if err != nil {
+		return nil, fmt.Errorf("DNS query failed: %v", err)
+	}
+	for _, ans := range resp.Answer {
+		if txt, ok := ans.(*dns.TXT); ok {
+			name := strings.TrimSuffix(txt.Hdr.Name, ".")
+			for _, txtVal := range txt.Txt {
+				records = append(records, internalDns.Record{
+					Name:    name,
+					Type:    "TXT",
+					Content: txtVal,
+					TTL:     int(txt.Hdr.Ttl),
+				})
+			}
+		}
+	}
+	return records, nil
 }
 
 func (p LegoRFC2136Provider) Get(domain, recordType string) (internalDns.Record, error) {
-       // Query a specific record in the zone using miekg/dns
-       if recordType != "TXT" {
-	       return internalDns.Record{}, fmt.Errorf("only TXT records are supported")
-       }
-       fqdn := dns.Fqdn(domain + "." + p.zone)
-       m := new(dns.Msg)
-       m.SetQuestion(fqdn, dns.TypeTXT)
-       c := new(dns.Client)
+	// Query a specific record in the zone using miekg/dns
+	if recordType != "TXT" {
+		return internalDns.Record{}, fmt.Errorf("only TXT records are supported")
+	}
+	fqdn := dns.Fqdn(domain + "." + p.zone)
+	m := new(dns.Msg)
+	m.SetQuestion(fqdn, dns.TypeTXT)
+	c := new(dns.Client)
 	resp, _, err := c.Exchange(m, p.nameserver)
-       if err != nil {
-	       return internalDns.Record{}, fmt.Errorf("DNS query failed: %v", err)
-       }
-       for _, ans := range resp.Answer {
-	       if txt, ok := ans.(*dns.TXT); ok {
-		       name := strings.TrimSuffix(txt.Hdr.Name, ".")
-		       for _, txtVal := range txt.Txt {
-			       return internalDns.Record{
-				       Name:    name,
-				       Type:    "TXT",
-				       Content: txtVal,
-				       TTL:     int(txt.Hdr.Ttl),
-			       }, nil
-		       }
-	       }
-       }
-       return internalDns.Record{}, fmt.Errorf("TXT record not found for domain: %s", domain)
+	if err != nil {
+		return internalDns.Record{}, fmt.Errorf("DNS query failed: %v", err)
+	}
+	for _, ans := range resp.Answer {
+		if txt, ok := ans.(*dns.TXT); ok {
+			name := strings.TrimSuffix(txt.Hdr.Name, ".")
+			for _, txtVal := range txt.Txt {
+				return internalDns.Record{
+					Name:    name,
+					Type:    "TXT",
+					Content: txtVal,
+					TTL:     int(txt.Hdr.Ttl),
+				}, nil
+			}
+		}
+	}
+	return internalDns.Record{}, fmt.Errorf("TXT record not found for domain: %s", domain)
 }
 
 func (p LegoRFC2136Provider) Create(record internalDns.Record) (internalDns.Record, error) {
