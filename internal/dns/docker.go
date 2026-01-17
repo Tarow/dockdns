@@ -44,7 +44,13 @@ func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord
 			record.ContainerName = strings.TrimPrefix(ctr.Names[0], "/")
 		}
 
-		labelRecords = append(labelRecords, record)
+		// Name label can have multiple comma separated domains. Create a record for all of them
+		domains := strings.Split(record.Name, ",")
+		for _, domain := range domains {
+			r := record
+			r.Name = domain
+			labelRecords = append(labelRecords, r)
+		}
 	}
 
 	return labelRecords, nil
