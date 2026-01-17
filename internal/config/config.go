@@ -58,19 +58,17 @@ type Zone struct {
 	// For all providers, the domain name / zone name
 	Name string `yaml:"name"`
 
-	// For cloudflare, the API token with Zone:Edit permission
-	// For rfc2136, the TSIG-KEY-SECRET
+	// For cloudflare and technitium, the API token
 	ApiToken string `yaml:"apiToken"`
-
-	// RFC2136 specific
-	ApiHost  string `yaml:"apiHost,omitempty"`  // For rfc2136, the DNS server address
-	ApiPort  string `yaml:"apiPort,omitempty"`  // For rfc2136, the DNS server port
-	Protocol string `yaml:"protocol,omitempty"` // For rfc2136, the protocol (tcp or udp, defaults to udp)
-	TsigName string `yaml:"tsigName,omitempty"` // For rfc2136, the TSIG key name
-	TsigAlgo string `yaml:"tsigAlgo,omitempty"` // For rfc2136, the TSIG algorithm
 
 	// Cloudflare specific
 	ZoneID string `yaml:"zoneID,omitempty"`
+
+	// Technitium specific
+	ApiURL        string `yaml:"apiURL,omitempty"`        // For technitium, the API URL (e.g., http://localhost:5380)
+	ApiUsername   string `yaml:"apiUsername,omitempty"`   // For technitium, the username for authentication
+	ApiPassword   string `yaml:"apiPassword,omitempty"`   // For technitium, the password for authentication
+	SkipTLSVerify bool   `yaml:"skipTLSVerify,omitempty"` // For technitium, skip TLS certificate verification
 }
 
 type DNS struct {

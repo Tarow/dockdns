@@ -12,8 +12,6 @@ zones:
   - name: localdomain.test
     provider: cloudflare
     apiToken: ...
-  - name: localdomain.test
-    provider: rfc2136
 
 dns:
   a: true

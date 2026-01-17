@@ -8,12 +8,12 @@ import (
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider/cloudflare"
-	"github.com/Tarow/dockdns/internal/provider/rfc2136"
+	"github.com/Tarow/dockdns/internal/provider/technitium"
 )
 
 const (
 	Cloudflare = "cloudflare"
-	Rfc2136    = "rfc2136"
+	Technitium = "technitium"
 )
 
 type ProviderCreator func(config.Zone) (dns.Provider, error)
@@ -32,28 +32,21 @@ var providers = map[string]func(*config.Zone) (dns.Provider, error){
 
 		return cloudflare.New(zoneCfg.ApiToken, zoneCfg.ZoneID)
 	},
-	Rfc2136: func(zoneCfg *config.Zone) (dns.Provider, error) {
-		if zoneCfg.ApiHost == "" ||
-			zoneCfg.ApiPort == "" ||
-			zoneCfg.TsigName == "" ||
-			zoneCfg.ApiToken == "" ||
-			zoneCfg.TsigAlgo == "" ||
-			zoneCfg.Name == "" {
-			return nil, fmt.Errorf("RFC2136 provider requires ApiHost, ApiPort, TsigName, ApiToken (TsigSecret), TsigAlgo, Name (zone) to be set.  Got zoneCfg: %v", zoneCfg)
+	Technitium: func(zoneCfg *config.Zone) (dns.Provider, error) {
+		if zoneCfg.ApiURL == "" || zoneCfg.Name == "" {
+			return nil, fmt.Errorf("Technitium provider requires ApiURL and Name (zone) to be set. Got zoneCfg: %v", zoneCfg)
 		}
-		// Default to UDP if protocol not specified
-		protocol := zoneCfg.Protocol
-		if protocol == "" {
-			protocol = "udp"
+		// Either apiToken OR (username and password) must be provided
+		if zoneCfg.ApiToken == "" && (zoneCfg.ApiUsername == "" || zoneCfg.ApiPassword == "") {
+			return nil, fmt.Errorf("Technitium provider requires either ApiToken, or ApiUsername and ApiPassword to be set. Got zoneCfg: %v", zoneCfg)
 		}
-		return rfc2136.New(
-			zoneCfg.ApiHost,
-			zoneCfg.ApiPort,
-			protocol,
-			zoneCfg.TsigName,
+		return technitium.New(
+			zoneCfg.ApiURL,
+			zoneCfg.ApiUsername,
+			zoneCfg.ApiPassword,
 			zoneCfg.ApiToken,
-			zoneCfg.TsigAlgo,
-			zoneCfg.Name), nil
+			zoneCfg.Name,
+			zoneCfg.SkipTLSVerify)
 	},
 }
 
