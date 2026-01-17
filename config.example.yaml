@@ -13,21 +13,16 @@ zones:
     provider: cloudflare
     apiToken: ... # Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
     zoneID: 
-  # Example RFC2136 configuration
-  - name: example.com
-    provider: rfc2136
-    apiHost: 192.168.1.1
-    apiPort: 53
-    protocol: udp    # Optional: tcp or udp (defaults to udp)
-    tsigName: update-key
-    tsigAlgo: hmac-sha256
-    apiToken: ... # TSIG secret key
   # Example Technitium DNS configuration
   - name: internal.example.com
     provider: technitium
     apiURL: http://192.168.1.10:5380  # Technitium DNS Server URL
-    apiUsername: admin                 # Technitium username
-    apiPassword: ...                   # Technitium password (can be passed as environment variable)
+    # Option 1: Use API token (recommended)
+    apiToken: ...                      # Technitium API token (can be passed as environment variable)
+    # Option 2: Use username/password (if no apiToken is set)
+    # apiUsername: admin               # Technitium username
+    # apiPassword: ...                 # Technitium password
+    # skipTLSVerify: true              # Skip TLS certificate verification (for self-signed certs)
 
 dns:
   a: true

@@ -1,6 +1,7 @@
 package technitium
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,13 +17,15 @@ import (
 )
 
 type TechnitiumProvider struct {
-	apiURL   string
-	username string
-	password string
-	zone     string
-	token    string
-	tokenMu  sync.RWMutex
-	client   *http.Client
+	apiURL        string
+	username      string
+	password      string
+	zone          string
+	token         string
+	isApiToken    bool // true if using pre-created API token, false if using session token from login
+	skipTLSVerify bool // true to skip TLS certificate verification
+	tokenMu       sync.RWMutex
+	client        *http.Client
 }
 
 type loginResponse struct {
@@ -61,22 +64,49 @@ type rData struct {
 	CName     string `json:"cname,omitempty"`     // Alternative CNAME field
 }
 
-func New(apiURL, username, password, zone string) (*TechnitiumProvider, error) {
-	if apiURL == "" || username == "" || password == "" || zone == "" {
-		return nil, fmt.Errorf("technitium provider requires apiURL, username, password, and zone to be set")
+// New creates a new TechnitiumProvider.
+// If apiToken is provided, it will be used directly for authentication.
+// Otherwise, username and password will be used to obtain a session token.
+// If skipTLSVerify is true, TLS certificate verification will be skipped.
+func New(apiURL, username, password, apiToken, zone string, skipTLSVerify bool) (*TechnitiumProvider, error) {
+	if apiURL == "" || zone == "" {
+		return nil, fmt.Errorf("technitium provider requires apiURL and zone to be set")
 	}
 
 	// Ensure apiURL doesn't have trailing slash
 	apiURL = strings.TrimSuffix(apiURL, "/")
 
+	// Create HTTP client with optional TLS skip verify
+	httpClient := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+	if skipTLSVerify {
+		httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		slog.Warn("Technitium DNS TLS certificate verification disabled", "zone", zone)
+	}
+
 	provider := &TechnitiumProvider{
-		apiURL:   apiURL,
-		username: username,
-		password: password,
-		zone:     zone,
-		client: &http.Client{
-			Timeout: 30 * time.Second,
-		},
+		apiURL:        apiURL,
+		username:      username,
+		password:      password,
+		zone:          zone,
+		skipTLSVerify: skipTLSVerify,
+		client:        httpClient,
+	}
+
+	// If API token is provided, use it directly
+	if apiToken != "" {
+		provider.token = apiToken
+		provider.isApiToken = true
+		slog.Debug("Technitium DNS using API token authentication", "zone", zone)
+		return provider, nil
+	}
+
+	// Otherwise, require username and password for login
+	if username == "" || password == "" {
+		return nil, fmt.Errorf("technitium provider requires either apiToken, or username and password to be set")
 	}
 
 	// Login and get token
@@ -142,6 +172,10 @@ func (p *TechnitiumProvider) doRequestWithRetry(method, endpoint string, data ur
 
 	token := p.getToken()
 	if token == "" {
+		// API token users should already have a token set
+		if p.isApiToken {
+			return nil, fmt.Errorf("API token is not set")
+		}
 		if err := p.login(); err != nil {
 			return nil, err
 		}
@@ -188,6 +222,10 @@ func (p *TechnitiumProvider) doRequestWithRetry(method, endpoint string, data ur
 	var apiResp apiResponse
 	if err := json.Unmarshal(body, &apiResp); err == nil {
 		if apiResp.Status == "invalid-token" {
+			// If using API token, we can't retry login
+			if p.isApiToken {
+				return nil, fmt.Errorf("API token is invalid or expired")
+			}
 			if retryCount >= maxRetries {
 				return nil, fmt.Errorf("authentication failed after %d retries: invalid token", maxRetries)
 			}
