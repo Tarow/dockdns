@@ -64,9 +64,9 @@ func createRecord(domain config.DomainRecord, recordType string, zoneKey string)
 		Name:          domain.Name,
 		Content:       domain.GetContentForZone(recordType, zoneKey),
 		Type:          recordType,
-		TTL:           domain.TTL,
+		TTL:           domain.GetTTLForZone(zoneKey),
 		Proxied:       domain.GetProxiedForZone(zoneKey),
-		Comment:       domain.Comment,
+		Comment:       domain.GetCommentForZone(zoneKey),
 		Source:        domain.Source,
 		ContainerID:   domain.ContainerID,
 		ContainerName: domain.ContainerName,
@@ -89,12 +89,14 @@ func isEqual(record Record, domain config.DomainRecord, recordType string, zoneK
 		return false
 	}
 
-	if record.Comment != domain.Comment {
+	comment := domain.GetCommentForZone(zoneKey)
+	if record.Comment != comment {
 		return false
 	}
 
 	// If domain is proxied, TTL will be auto, dont compare it
-	if (!record.Proxied) && record.TTL != domain.TTL {
+	ttl := domain.GetTTLForZone(zoneKey)
+	if (!record.Proxied) && record.TTL != ttl {
 		return false
 	}
 

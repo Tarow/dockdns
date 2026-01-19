@@ -94,42 +94,88 @@ func parseLabels(ctr container.Summary, targetStruct *config.DomainRecord) error
 	return nil
 }
 
-const (
-	cnameOverridePrefix   = "dockdns.cname."
-	proxiedOverridePrefix = "dockdns.proxied."
-)
-
 // parseProviderOverrides extracts provider/zone-specific overrides from container labels.
-// Labels like "dockdns.cname.<zone-id>=internal.example.com" override the CNAME for that zone.
-// Labels like "dockdns.proxied.<zone-id>=true" override the proxied setting for that zone.
+// 
+// Label format: "dockdns.<zone-id>.<field>=value"
+// Examples: 
+//   - dockdns.cloudflare-prod.a=10.0.0.5
+//   - dockdns.technitium-internal.cname=internal.example.com
+//   - dockdns.zone1.ttl=600
+//
 // The zone ID is the value of the zone's 'id' field in config, or the zone name if 'id' is not set.
 func parseProviderOverrides(labels map[string]string, record *config.DomainRecord) {
+	const dockdnsPrefix = "dockdns."
+	
 	for label, value := range labels {
-		// Parse CNAME overrides (e.g., dockdns.cname.technitium-internal=internal.example.com)
-		if strings.HasPrefix(label, cnameOverridePrefix) && label != "dockdns.cname" {
-			zoneID := strings.TrimPrefix(label, cnameOverridePrefix)
-			if zoneID != "" && value != "" {
-				if record.CNameOverrides == nil {
-					record.CNameOverrides = make(map[string]string)
-				}
-				record.CNameOverrides[zoneID] = value
-			}
+		if !strings.HasPrefix(label, dockdnsPrefix) {
+			continue
 		}
-
-		// Parse Proxied overrides (e.g., dockdns.proxied.cloudflare-prod=true)
-		if strings.HasPrefix(label, proxiedOverridePrefix) && label != "dockdns.proxied" {
-			zoneID := strings.TrimPrefix(label, proxiedOverridePrefix)
-			if zoneID != "" && value != "" {
-				boolValue, err := strconv.ParseBool(value)
-				if err != nil {
-					slog.Warn("invalid boolean value for proxied override", "label", label, "value", value)
-					continue
-				}
-				if record.ProxiedOverrides == nil {
-					record.ProxiedOverrides = make(map[string]bool)
-				}
-				record.ProxiedOverrides[zoneID] = boolValue
+		
+		// Remove "dockdns." prefix
+		rest := strings.TrimPrefix(label, dockdnsPrefix)
+		
+		// Split by dots to get parts: dockdns.<zone-id>.<field>
+		parts := strings.SplitN(rest, ".", 2)
+		if len(parts) != 2 {
+			// Not an override label (could be dockdns.name, dockdns.a, etc.)
+			continue
+		}
+		
+		zoneID := parts[0]
+		field := parts[1]
+		
+		// Skip if zoneID or value is empty
+		if zoneID == "" || value == "" {
+			continue
+		}
+		
+		// Process the override based on field type
+		switch field {
+		case "a":
+			if record.IP4Overrides == nil {
+				record.IP4Overrides = make(map[string]string)
 			}
+			record.IP4Overrides[zoneID] = value
+			
+		case "aaaa":
+			if record.IP6Overrides == nil {
+				record.IP6Overrides = make(map[string]string)
+			}
+			record.IP6Overrides[zoneID] = value
+			
+		case "cname":
+			if record.CNameOverrides == nil {
+				record.CNameOverrides = make(map[string]string)
+			}
+			record.CNameOverrides[zoneID] = value
+			
+		case "ttl":
+			ttlValue, err := strconv.Atoi(value)
+			if err != nil {
+				slog.Warn("invalid integer value for ttl override", "label", label, "value", value)
+				continue
+			}
+			if record.TTLOverrides == nil {
+				record.TTLOverrides = make(map[string]int)
+			}
+			record.TTLOverrides[zoneID] = ttlValue
+			
+		case "proxied":
+			boolValue, err := strconv.ParseBool(value)
+			if err != nil {
+				slog.Warn("invalid boolean value for proxied override", "label", label, "value", value)
+				continue
+			}
+			if record.ProxiedOverrides == nil {
+				record.ProxiedOverrides = make(map[string]bool)
+			}
+			record.ProxiedOverrides[zoneID] = boolValue
+			
+		case "comment":
+			if record.CommentOverrides == nil {
+				record.CommentOverrides = make(map[string]string)
+			}
+			record.CommentOverrides[zoneID] = value
 		}
 	}
 }
