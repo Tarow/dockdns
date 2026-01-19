@@ -54,3 +54,16 @@ domains:
     proxied: false  # Default: not proxied
     proxiedOverrides:
       cloudflare-prod: true  # Enable Cloudflare proxy for this zone
+    
+  # Example with all override types
+  - name: "multi.somedomain.com"
+    a: "10.0.0.1"
+    ttl: 300
+    comment: "Default configuration"
+    ip4Overrides:
+      cloudflare-prod: "10.0.0.10"  # Different IP for Cloudflare zone
+    ttlOverrides:
+      technitium-internal: 600       # Higher TTL for internal zone
+    commentOverrides:
+      cloudflare-prod: "Production server"
+      technitium-internal: "Internal server"

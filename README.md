@@ -109,10 +109,38 @@ Supported labels:
 | dockdns.ttl | dockdns.ttl=600 | Record TTL |
 | dockdns.proxied | dockdns.proxied=false | Cloudflare proxy (default) |
 | dockdns.comment | dockdns.comment=Some comment | Record comment |
-| dockdns.cname.\<id\> | dockdns.cname.technitium-internal=target.local | Zone-specific CNAME override |
-| dockdns.proxied.\<id\> | dockdns.proxied.cloudflare-prod=true | Zone-specific proxied override |
 
-The `<id>` in override labels should match the zone's `id` field (or zone `name` if `id` is not set).
+#### Zone-Specific Overrides
+
+You can override any field for specific zones/providers. The `<id>` in override labels should match the zone's `id` field (or zone `name` if `id` is not set).
+
+**New format (recommended):** `dockdns.<zone-id>.<field>=value`
+
+| Label | Example | Description |
+|----------------------|-------------------------------------------|-------------|
+| dockdns.\<id\>.a | dockdns.cloudflare-prod.a=10.0.0.5 | Zone-specific IPv4 address |
+| dockdns.\<id\>.aaaa | dockdns.zone1.aaaa=2001:db8::5 | Zone-specific IPv6 address |
+| dockdns.\<id\>.cname | dockdns.technitium-internal.cname=target.local | Zone-specific CNAME target |
+| dockdns.\<id\>.ttl | dockdns.zone1.ttl=600 | Zone-specific TTL |
+| dockdns.\<id\>.proxied | dockdns.cloudflare-prod.proxied=true | Zone-specific proxied setting |
+| dockdns.\<id\>.comment | dockdns.zone1.comment=Zone comment | Zone-specific comment |
+
+**Legacy format (backwards compatible):** `dockdns.<field>.<zone-id>=value`
+
+Both formats work and can be mixed. The new format is recommended as it groups settings by zone more naturally.
+
+Examples:
+```yaml
+# New format - group by zone
+dockdns.cloudflare-prod.a=10.0.0.5
+dockdns.cloudflare-prod.proxied=true
+dockdns.technitium-internal.a=192.168.1.10
+dockdns.technitium-internal.ttl=600
+
+# Legacy format - still supported
+dockdns.a.cloudflare-prod=10.0.0.5
+dockdns.proxied.cloudflare-prod=true
+```
 
 ---
 

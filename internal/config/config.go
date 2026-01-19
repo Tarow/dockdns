@@ -96,8 +96,12 @@ type DomainRecord struct {
 	// Provider-specific overrides (zone ID -> override value)
 	// These allow different values per DNS provider/zone.
 	// The key should be the zone's ID (if set) or Name (for backwards compatibility).
+	IP4Overrides     map[string]string `yaml:"ip4Overrides,omitempty"`     // e.g., {"zone1": "10.0.0.5"}
+	IP6Overrides     map[string]string `yaml:"ip6Overrides,omitempty"`     // e.g., {"zone1": "2001:db8::5"}
 	CNameOverrides   map[string]string `yaml:"cnameOverrides,omitempty"`   // e.g., {"technitium-internal": "internal.example.com"}
+	TTLOverrides     map[string]int    `yaml:"ttlOverrides,omitempty"`     // e.g., {"zone1": 600}
 	ProxiedOverrides map[string]bool   `yaml:"proxiedOverrides,omitempty"` // e.g., {"cloudflare-prod": true}
+	CommentOverrides map[string]string `yaml:"commentOverrides,omitempty"` // e.g., {"zone1": "Zone-specific comment"}
 
 	// Container metadata (populated for Docker-sourced records)
 	ContainerID   string `yaml:"-"` // Docker container ID (short form)
@@ -105,13 +109,25 @@ type DomainRecord struct {
 	Source        string `yaml:"-"` // Source of the record: "docker" or "static"
 }
 
-// GetContentForZone returns the content for the given record type, with zone-specific overrides for CNAME.
+// GetContentForZone returns the content for the given record type, with zone-specific overrides.
 // The zoneID parameter should be the zone's ID (if set) or Name (for backwards compatibility).
 func (d DomainRecord) GetContentForZone(recordType string, zoneID string) string {
 	switch recordType {
 	case constants.RecordTypeA:
+		// Check for zone-specific IP4 override
+		if d.IP4Overrides != nil {
+			if override, exists := d.IP4Overrides[zoneID]; exists && override != "" {
+				return override
+			}
+		}
 		return d.IP4
 	case constants.RecordTypeAAAA:
+		// Check for zone-specific IP6 override
+		if d.IP6Overrides != nil {
+			if override, exists := d.IP6Overrides[zoneID]; exists && override != "" {
+				return override
+			}
+		}
 		return d.IP6
 	case constants.RecordTypeCNAME:
 		// Check for zone-specific CNAME override
@@ -135,6 +151,28 @@ func (d DomainRecord) GetProxiedForZone(zoneID string) bool {
 		}
 	}
 	return d.Proxied
+}
+
+// GetTTLForZone returns the TTL setting, with zone-specific override if available.
+// The zoneID parameter should be the zone's ID (if set) or Name (for backwards compatibility).
+func (d DomainRecord) GetTTLForZone(zoneID string) int {
+	if d.TTLOverrides != nil {
+		if override, exists := d.TTLOverrides[zoneID]; exists {
+			return override
+		}
+	}
+	return d.TTL
+}
+
+// GetCommentForZone returns the comment, with zone-specific override if available.
+// The zoneID parameter should be the zone's ID (if set) or Name (for backwards compatibility).
+func (d DomainRecord) GetCommentForZone(zoneID string) string {
+	if d.CommentOverrides != nil {
+		if override, exists := d.CommentOverrides[zoneID]; exists {
+			return override
+		}
+	}
+	return d.Comment
 }
 
 // GetKey returns the zone's key for use in override lookups.
