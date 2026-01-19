@@ -112,9 +112,9 @@ Supported labels:
 
 #### Zone-Specific Overrides
 
-You can override any field for specific zones/providers. The `<id>` in override labels should match the zone's `id` field (or zone `name` if `id` is not set).
+You can override any field for specific zones/providers using the format: `dockdns.<zone-id>.<field>=value`
 
-**New format (recommended):** `dockdns.<zone-id>.<field>=value`
+The `<zone-id>` should match the zone's `id` field (or zone `name` if `id` is not set).
 
 | Label | Example | Description |
 |----------------------|-------------------------------------------|-------------|
@@ -125,21 +125,13 @@ You can override any field for specific zones/providers. The `<id>` in override 
 | dockdns.\<id\>.proxied | dockdns.cloudflare-prod.proxied=true | Zone-specific proxied setting |
 | dockdns.\<id\>.comment | dockdns.zone1.comment=Zone comment | Zone-specific comment |
 
-**Legacy format (backwards compatible):** `dockdns.<field>.<zone-id>=value`
-
-Both formats work and can be mixed. The new format is recommended as it groups settings by zone more naturally.
-
-Examples:
+Example:
 ```yaml
-# New format - group by zone
+# Group settings by zone
 dockdns.cloudflare-prod.a=10.0.0.5
 dockdns.cloudflare-prod.proxied=true
 dockdns.technitium-internal.a=192.168.1.10
 dockdns.technitium-internal.ttl=600
-
-# Legacy format - still supported
-dockdns.a.cloudflare-prod=10.0.0.5
-dockdns.proxied.cloudflare-prod=true
 ```
 
 ---

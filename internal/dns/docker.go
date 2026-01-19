@@ -96,18 +96,11 @@ func parseLabels(ctr container.Summary, targetStruct *config.DomainRecord) error
 
 // parseProviderOverrides extracts provider/zone-specific overrides from container labels.
 // 
-// Supports two label formats:
-// 1. New format (recommended): "dockdns.<zone-id>.<field>=value"
-//    Examples: 
-//      - dockdns.cloudflare-prod.a=10.0.0.5
-//      - dockdns.technitium-internal.cname=internal.example.com
-//      - dockdns.zone1.ttl=600
-//
-// 2. Legacy format (backwards compatible): "dockdns.<field>.<zone-id>=value"
-//    Examples:
-//      - dockdns.a.cloudflare-prod=10.0.0.5
-//      - dockdns.cname.technitium-internal=internal.example.com
-//      - dockdns.ttl.zone1=600
+// Label format: "dockdns.<zone-id>.<field>=value"
+// Examples: 
+//   - dockdns.cloudflare-prod.a=10.0.0.5
+//   - dockdns.technitium-internal.cname=internal.example.com
+//   - dockdns.zone1.ttl=600
 //
 // The zone ID is the value of the zone's 'id' field in config, or the zone name if 'id' is not set.
 func parseProviderOverrides(labels map[string]string, record *config.DomainRecord) {
@@ -121,36 +114,15 @@ func parseProviderOverrides(labels map[string]string, record *config.DomainRecor
 		// Remove "dockdns." prefix
 		rest := strings.TrimPrefix(label, dockdnsPrefix)
 		
-		// Split by dots to get parts
+		// Split by dots to get parts: dockdns.<zone-id>.<field>
 		parts := strings.SplitN(rest, ".", 2)
 		if len(parts) != 2 {
 			// Not an override label (could be dockdns.name, dockdns.a, etc.)
 			continue
 		}
 		
-		part1, part2 := parts[0], parts[1]
-		
-		// Try to determine which format this is by checking if part1 is a known field name
-		knownFields := map[string]bool{
-			"a":       true,
-			"aaaa":    true,
-			"cname":   true,
-			"ttl":     true,
-			"proxied": true,
-			"comment": true,
-		}
-		
-		var zoneID, field string
-		
-		if knownFields[part1] {
-			// Legacy format: dockdns.<field>.<zone-id>
-			field = part1
-			zoneID = part2
-		} else {
-			// New format: dockdns.<zone-id>.<field>
-			zoneID = part1
-			field = part2
-		}
+		zoneID := parts[0]
+		field := parts[1]
 		
 		// Skip if zoneID or value is empty
 		if zoneID == "" || value == "" {
