@@ -59,12 +59,13 @@ func (s *Scheduler) Start(ctx context.Context, debounceInterval time.Duration, m
 
 		// If resetting the debounceTimer exceeds the maxDebounceDuration, only reset it to the point the maxDebounceDuration is reached
 		if !maxDebounceTime.IsZero() && time.Now().Add(debounceInterval).After(maxDebounceTime) {
-			slog.Debug("Received event, resetting would exceed maximum debounce time, won't reset beyond", "name", e.Name)
+			slog.Debug("Received event, resetting would exceed maximum debounce time, won't reset beyond", "name", e.Name, "event", e)
 			debounceTimer.Reset(time.Until(maxDebounceTime))
 			return
 		}
 
-		slog.Debug("Received event, resetting debounce timer", "name", e.Name)
+		slog.Debug("Received event, resetting debounce timer", "name", e.Name, "event", e)
+		slog.Debug("TriggerEvent details", "event", e)
 		debounceTimer.Reset(debounceInterval)
 
 		// If we start debouncing, set the max deboune time

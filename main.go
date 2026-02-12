@@ -44,21 +44,26 @@ func main() {
 	slog.Debug("Successfully read config", "config", appCfg)
 
 	if len(appCfg.Zones) < 1 {
-		slog.Error("no zone configuration found, exiting")
-		os.Exit(1)
+		slog.Error("no zone configuration found!  Are you sure you have configured at least one zone?")
 	}
 
 	if dryRun {
 		slog.Info("Dry run enabled, changes won't be applied")
 	}
-	providers := map[string]dns.Provider{}
+	providers := map[string]dns.ProviderInfo{}
 	for _, zone := range appCfg.Zones {
 		dnsProvider, err := provider.Get(&zone, dryRun)
 		if err != nil {
 			slog.Error("Failed to create DNS provider", "zone", zone.Name, "error", err)
 			os.Exit(1)
 		}
-		providers[zone.Name] = dnsProvider
+		// Use zone's key (ID if set, otherwise Name) for provider lookup
+		zoneKey := zone.GetKey()
+		providers[zoneKey] = dns.ProviderInfo{
+			Provider: dnsProvider,
+			ZoneName: zone.Name,
+			ZoneKey:  zoneKey,
+		}
 	}
 
 	dockerCli, err := client.NewClientWithOpts(client.FromEnv)
