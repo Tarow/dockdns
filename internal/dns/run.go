@@ -11,12 +11,19 @@ import (
 )
 
 type Handler struct {
-	Providers     map[string]Provider
+	Providers     map[string]ProviderInfo
 	DnsCfg        config.DNS
 	staticDomains config.Domains
 	dockerCli     *client.Client
 	LatestDomains config.Domains
 	LastUpdate    time.Time
+}
+
+// ProviderInfo holds a DNS provider along with its zone metadata.
+type ProviderInfo struct {
+	Provider Provider
+	ZoneName string // The actual zone name (e.g., "example.com")
+	ZoneKey  string // The key for override lookups (ID if set, otherwise ZoneName)
 }
 
 type Provider interface {
@@ -35,9 +42,14 @@ type Record struct {
 	Proxied bool
 	TTL     int
 	Comment string
+
+	// Metadata for record origin tracking (used by providers like Technitium for comments)
+	Source        string // "docker" or "static"
+	ContainerID   string // Docker container ID (short form)
+	ContainerName string // Docker container name
 }
 
-func NewHandler(providers map[string]Provider, dnsDefaultCfg config.DNS,
+func NewHandler(providers map[string]ProviderInfo, dnsDefaultCfg config.DNS,
 	staticDomains config.Domains, dockerCli *client.Client) Handler {
 	return Handler{
 		Providers:     providers,
@@ -53,6 +65,11 @@ func (h *Handler) Run() error {
 	// Copy the static domains to avoid modifying the original config entries
 	staticDomains := make([]config.DomainRecord, len(h.staticDomains))
 	copy(staticDomains, h.staticDomains)
+
+	// Mark static domains with their source
+	for i := range staticDomains {
+		staticDomains[i].Source = "static"
+	}
 
 	slog.Debug("static config", "domains", staticDomains)
 
@@ -101,17 +118,19 @@ func (h *Handler) Run() error {
 		slog.Info("Found no records to update")
 	}
 
-	for zone, provider := range h.Providers {
-		domains := filterDomains(allDomains, zone)
+	for _, providerInfo := range h.Providers {
+		// Filter domains by zone name (suffix matching)
+		domains := filterDomains(allDomains, providerInfo.ZoneName)
 
-		slog.Debug("starting update", "zone", zone, "domains", domains)
-		h.updateRecords(provider, domains)
-		slog.Debug("finished update", "zone", zone, "domains", domains)
+		slog.Debug("starting update", "zone", providerInfo.ZoneName, "zoneKey", providerInfo.ZoneKey, "domains", domains)
+		// Pass the zone key for override lookups
+		h.updateRecords(providerInfo.Provider, domains, providerInfo.ZoneKey)
+		slog.Debug("finished update", "zone", providerInfo.ZoneName, "domains", domains)
 
 		if h.DnsCfg.PurgeUnknown {
-			slog.Debug("starting purge of unknown domains", "zone", zone, "domains", domains)
-			h.purgeUnknownRecords(provider, domains)
-			slog.Debug("finished purge of unknown domains", "zone", zone, "domains", domains)
+			slog.Debug("starting purge of unknown domains", "zone", providerInfo.ZoneName, "domains", domains)
+			h.purgeUnknownRecords(providerInfo.Provider, domains)
+			slog.Debug("finished purge of unknown domains", "zone", providerInfo.ZoneName, "domains", domains)
 		}
 	}
 	h.LastUpdate = time.Now()

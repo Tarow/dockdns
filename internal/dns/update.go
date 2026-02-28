@@ -8,35 +8,37 @@ import (
 	"github.com/Tarow/dockdns/internal/constants"
 )
 
-func (h Handler) updateRecords(provider Provider, domains []config.DomainRecord) {
+func (h Handler) updateRecords(provider Provider, domains []config.DomainRecord, zoneKey string) {
 	for _, domain := range domains {
 		// Important: If a CNAME is set, A and AAAA records for the same name cannot be set. They will be ignored!
-		if strings.TrimSpace(domain.CName) != "" {
-			h.updateRecord(provider, domain, constants.RecordTypeCNAME)
+		// Check zone-specific CNAME override first, then fall back to default
+		cname := domain.GetContentForZone(constants.RecordTypeCNAME, zoneKey)
+		if strings.TrimSpace(cname) != "" {
+			h.updateRecord(provider, domain, constants.RecordTypeCNAME, zoneKey)
 		} else {
 			if strings.TrimSpace(domain.IP4) != "" && h.DnsCfg.EnableIP4 {
-				h.updateRecord(provider, domain, constants.RecordTypeA)
+				h.updateRecord(provider, domain, constants.RecordTypeA, zoneKey)
 			}
 
 			if strings.TrimSpace(domain.IP6) != "" && h.DnsCfg.EnableIP6 {
-				h.updateRecord(provider, domain, constants.RecordTypeAAAA)
+				h.updateRecord(provider, domain, constants.RecordTypeAAAA, zoneKey)
 			}
 		}
 	}
 }
 
-func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, recordType string) {
+func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, recordType string, zoneKey string) {
 	existingRecord, err := provider.Get(domain.Name, recordType)
 	if err != nil {
 		slog.Error("failed to fetch existing record", "name", domain.Name, "type", recordType, "action", "skip record", "error", err)
 		return
 	}
-	if isEqual(existingRecord, domain, recordType) {
+	if isEqual(existingRecord, domain, recordType, zoneKey) {
 		slog.Debug("No change detected, skipping update", "name", domain.Name, "type", recordType)
 		return
 	}
 
-	newRecord := createRecord(domain, recordType)
+	newRecord := createRecord(domain, recordType, zoneKey)
 	var updatedRecord Record
 	if existingRecord.ID == "" {
 		updatedRecord, err = provider.Create(newRecord)
@@ -57,19 +59,22 @@ func (h Handler) updateRecord(provider Provider, domain config.DomainRecord, rec
 
 }
 
-func createRecord(domain config.DomainRecord, recordType string) Record {
+func createRecord(domain config.DomainRecord, recordType string, zoneKey string) Record {
 	return Record{
-		Name:    domain.Name,
-		Content: domain.GetContent(recordType),
-		Type:    recordType,
-		TTL:     domain.TTL,
-		Proxied: domain.Proxied,
-		Comment: domain.Comment,
+		Name:          domain.Name,
+		Content:       domain.GetContentForZone(recordType, zoneKey),
+		Type:          recordType,
+		TTL:           domain.GetTTLForZone(zoneKey),
+		Proxied:       domain.GetProxiedForZone(zoneKey),
+		Comment:       domain.GetCommentForZone(zoneKey),
+		Source:        domain.Source,
+		ContainerID:   domain.ContainerID,
+		ContainerName: domain.ContainerName,
 	}
 }
 
-func isEqual(record Record, domain config.DomainRecord, recordType string) bool {
-	content := domain.GetContent(recordType)
+func isEqual(record Record, domain config.DomainRecord, recordType string, zoneKey string) bool {
+	content := domain.GetContentForZone(recordType, zoneKey)
 
 	if !strings.EqualFold(record.Content, content) {
 		return false
@@ -79,16 +84,19 @@ func isEqual(record Record, domain config.DomainRecord, recordType string) bool 
 		return false
 	}
 
-	if record.Proxied != domain.Proxied {
+	proxied := domain.GetProxiedForZone(zoneKey)
+	if record.Proxied != proxied {
 		return false
 	}
 
-	if record.Comment != domain.Comment {
+	comment := domain.GetCommentForZone(zoneKey)
+	if record.Comment != comment {
 		return false
 	}
 
 	// If domain is proxied, TTL will be auto, dont compare it
-	if (!record.Proxied) && record.TTL != domain.TTL {
+	ttl := domain.GetTTLForZone(zoneKey)
+	if (!record.Proxied) && record.TTL != ttl {
 		return false
 	}
 

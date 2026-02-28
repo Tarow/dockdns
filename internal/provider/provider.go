@@ -8,10 +8,12 @@ import (
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider/cloudflare"
+	"github.com/Tarow/dockdns/internal/provider/technitium"
 )
 
 const (
 	Cloudflare = "cloudflare"
+	Technitium = "technitium"
 )
 
 type ProviderCreator func(config.Zone) (dns.Provider, error)
@@ -29,6 +31,22 @@ var providers = map[string]func(*config.Zone) (dns.Provider, error){
 		}
 
 		return cloudflare.New(zoneCfg.ApiToken, zoneCfg.ZoneID)
+	},
+	Technitium: func(zoneCfg *config.Zone) (dns.Provider, error) {
+		if zoneCfg.ApiURL == "" || zoneCfg.Name == "" {
+			return nil, fmt.Errorf("Technitium provider requires ApiURL and Name (zone) to be set. Got zoneCfg: %v", zoneCfg)
+		}
+		// Either apiToken OR (username and password) must be provided
+		if zoneCfg.ApiToken == "" && (zoneCfg.ApiUsername == "" || zoneCfg.ApiPassword == "") {
+			return nil, fmt.Errorf("Technitium provider requires either ApiToken, or ApiUsername and ApiPassword to be set. Got zoneCfg: %v", zoneCfg)
+		}
+		return technitium.New(
+			zoneCfg.ApiURL,
+			zoneCfg.ApiUsername,
+			zoneCfg.ApiPassword,
+			zoneCfg.ApiToken,
+			zoneCfg.Name,
+			zoneCfg.SkipTLSVerify)
 	},
 }
 
