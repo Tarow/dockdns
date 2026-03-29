@@ -10,19 +10,21 @@ import (
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/constants"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 func (h Handler) filterDockerLabels() ([]config.DomainRecord, error) {
-	containers, err := h.dockerCli.ContainerList(context.Background(), container.ListOptions{
-		Filters: filters.NewArgs(filters.Arg("label", constants.DockdnsNameLabel)),
+	filterArgs := client.Filters{}
+	filterArgs.Add("label", constants.DockdnsNameLabel)
+	result, err := h.dockerCli.ContainerList(context.Background(), client.ContainerListOptions{
+		Filters: filterArgs,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return parseContainerLabels(containers)
+	return parseContainerLabels(result.Items)
 }
 
 func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord, error) {

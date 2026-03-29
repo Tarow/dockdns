@@ -18,8 +18,8 @@ import (
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider"
 	"github.com/Tarow/dockdns/internal/schedule"
-	"github.com/docker/docker/client"
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/moby/moby/client"
 )
 
 var configPath string
@@ -61,17 +61,15 @@ func main() {
 		providers[zone.Name] = dnsProvider
 	}
 
-	dockerCli, err := client.NewClientWithOpts(client.FromEnv)
+	dockerCli, err := client.New(client.FromEnv)
 	if err != nil {
 		dockerCli = nil
 		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
 	} else {
-		if _, err := dockerCli.Ping(context.Background()); err != nil {
+		if _, err := dockerCli.Ping(context.Background(), client.PingOptions{}); err != nil {
 			slog.Error("failed to ping docker daemon", "err", err)
 			os.Exit(1)
 		}
-
-		dockerCli.NegotiateAPIVersion(context.Background())
 	}
 
 	dnsHandler := dns.NewHandler(providers, appCfg.DNS, appCfg.Domains, dockerCli)
