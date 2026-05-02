@@ -100,9 +100,7 @@ func main() {
 	scheduler.Register(dockerEventTrigger)
 	scheduler.Register(intervalTrigger)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		slog.Info("Starting DNS updater")
 
 		// Start scheduler
@@ -112,7 +110,7 @@ func main() {
 			true)
 
 		slog.Info("Received termination signal. Exiting DNS updater...")
-	}()
+	})
 
 	var server *http.Server
 	if appCfg.WebUI {
@@ -126,15 +124,13 @@ func main() {
 			Addr:    ":8080",
 			Handler: mux,
 		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if err := server.ListenAndServe(); err != http.ErrServerClosed {
 				slog.Error("HTTP server error", "err", err)
 			} else {
 				slog.Info("Received shutdown signal, shutting down API server ...")
 			}
-		}()
+		})
 	}
 
 	// wait for kill signal

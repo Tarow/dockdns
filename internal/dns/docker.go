@@ -54,7 +54,7 @@ func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord
 func parseLabels(container container.Summary, targetStruct *config.DomainRecord) error {
 	containerLabels := container.Labels
 	targetValue := reflect.ValueOf(targetStruct)
-	if targetValue.Kind() != reflect.Ptr || targetValue.Elem().Kind() != reflect.Struct {
+	if targetValue.Kind() != reflect.Pointer || targetValue.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("targetStruct must be a pointer to a struct")
 	}
 
@@ -79,7 +79,7 @@ func parseLabels(container container.Summary, targetStruct *config.DomainRecord)
 }
 
 func setFieldValue(field reflect.Value, labelValue string) error {
-	if field.Kind() == reflect.Ptr {
+	if field.Kind() == reflect.Pointer {
 		// If the field is a pointer, create a new instance of the underlying type and set the value
 		if field.IsNil() {
 			field.Set(reflect.New(field.Type().Elem()))
