@@ -68,6 +68,22 @@ func getShortContainerID(id string) string {
 
 func parseLabels(ctr container.Summary, targetStruct *config.DomainRecord) error {
 	containerLabels := ctr.Labels
+
+	// The label-tagged fields live on the embedded DomainRecordBase, so reflect
+	// over that struct directly.
+	if err := parseLabeledFields(&targetStruct.DomainRecordBase, containerLabels); err != nil {
+		return err
+	}
+
+	// Parse provider-specific overrides (e.g., dockdns.technitium.cname, dockdns.cloudflare.proxied)
+	parseProviderOverrides(containerLabels, targetStruct)
+
+	return nil
+}
+
+// parseLabeledFields populates the `label`-tagged fields of the target struct
+// from the given container labels.
+func parseLabeledFields(targetStruct *config.DomainRecordBase, containerLabels map[string]string) error {
 	targetValue := reflect.ValueOf(targetStruct)
 	if targetValue.Kind() != reflect.Pointer || targetValue.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("targetStruct must be a pointer to a struct")
@@ -90,94 +106,84 @@ func parseLabels(ctr container.Summary, targetStruct *config.DomainRecord) error
 		}
 	}
 
-	// Parse provider-specific overrides (e.g., dockdns.cname.technitium, dockdns.proxied.cloudflare)
-	parseProviderOverrides(containerLabels, targetStruct)
-
 	return nil
 }
 
 // parseProviderOverrides extracts provider/zone-specific overrides from container labels.
-// 
+//
 // Label format: "dockdns.<zone-id>.<field>=value"
-// Examples: 
+// Examples:
 //   - dockdns.cloudflare-prod.a=10.0.0.5
 //   - dockdns.technitium-internal.cname=internal.example.com
 //   - dockdns.zone1.ttl=600
 //
 // The zone ID is the value of the zone's 'id' field in config, or the zone name if 'id' is not set.
+// Each override is stored as a config.DomainRecordBase in record.Overrides[zoneID],
+// reusing the same field shape as the base record.
 func parseProviderOverrides(labels map[string]string, record *config.DomainRecord) {
 	const dockdnsPrefix = "dockdns."
-	
+
+	setOverride := func(zoneID string, mutate func(*config.DomainRecordBase)) {
+		if record.Overrides == nil {
+			record.Overrides = make(map[string]config.DomainRecordBase)
+		}
+		base := record.Overrides[zoneID]
+		mutate(&base)
+		record.Overrides[zoneID] = base
+	}
+
 	for label, value := range labels {
 		if !strings.HasPrefix(label, dockdnsPrefix) {
 			continue
 		}
-		
+
 		// Remove "dockdns." prefix
 		rest := strings.TrimPrefix(label, dockdnsPrefix)
-		
+
 		// Split by dots to get parts: dockdns.<zone-id>.<field>
 		parts := strings.SplitN(rest, ".", 2)
 		if len(parts) != 2 {
 			// Not an override label (could be dockdns.name, dockdns.a, etc.)
 			continue
 		}
-		
+
 		zoneID := parts[0]
 		field := parts[1]
-		
+
 		// Skip if zoneID or value is empty
 		if zoneID == "" || value == "" {
 			continue
 		}
-		
+
 		// Process the override based on field type
 		switch field {
 		case "a":
-			if record.IP4Overrides == nil {
-				record.IP4Overrides = make(map[string]string)
-			}
-			record.IP4Overrides[zoneID] = value
-			
+			setOverride(zoneID, func(b *config.DomainRecordBase) { b.IP4 = value })
+
 		case "aaaa":
-			if record.IP6Overrides == nil {
-				record.IP6Overrides = make(map[string]string)
-			}
-			record.IP6Overrides[zoneID] = value
-			
+			setOverride(zoneID, func(b *config.DomainRecordBase) { b.IP6 = value })
+
 		case "cname":
-			if record.CNameOverrides == nil {
-				record.CNameOverrides = make(map[string]string)
-			}
-			record.CNameOverrides[zoneID] = value
-			
+			setOverride(zoneID, func(b *config.DomainRecordBase) { b.CName = value })
+
 		case "ttl":
 			ttlValue, err := strconv.Atoi(value)
 			if err != nil {
 				slog.Warn("invalid integer value for ttl override", "label", label, "value", value)
 				continue
 			}
-			if record.TTLOverrides == nil {
-				record.TTLOverrides = make(map[string]int)
-			}
-			record.TTLOverrides[zoneID] = ttlValue
-			
+			setOverride(zoneID, func(b *config.DomainRecordBase) { b.TTL = ttlValue })
+
 		case "proxied":
 			boolValue, err := strconv.ParseBool(value)
 			if err != nil {
 				slog.Warn("invalid boolean value for proxied override", "label", label, "value", value)
 				continue
 			}
-			if record.ProxiedOverrides == nil {
-				record.ProxiedOverrides = make(map[string]bool)
-			}
-			record.ProxiedOverrides[zoneID] = boolValue
-			
+			setOverride(zoneID, func(b *config.DomainRecordBase) { b.Proxied = boolValue })
+
 		case "comment":
-			if record.CommentOverrides == nil {
-				record.CommentOverrides = make(map[string]string)
-			}
-			record.CommentOverrides[zoneID] = value
+			setOverride(zoneID, func(b *config.DomainRecordBase) { b.Comment = value })
 		}
 	}
 }

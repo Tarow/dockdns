@@ -44,6 +44,16 @@ func TestZone_GetKey(t *testing.T) {
 	}
 }
 
+// base is a small helper to build a DomainRecord with just the inline base fields set.
+func base(b DomainRecordBase) DomainRecord {
+	return DomainRecord{DomainRecordBase: b}
+}
+
+// withOverrides builds a DomainRecord with base fields and a per-zone override map.
+func withOverrides(b DomainRecordBase, overrides map[string]DomainRecordBase) DomainRecord {
+	return DomainRecord{DomainRecordBase: b, Overrides: overrides}
+}
+
 func TestDomainRecord_GetContentForZone(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -54,118 +64,118 @@ func TestDomainRecord_GetContentForZone(t *testing.T) {
 	}{
 		{
 			name:       "A record returns IP4",
-			record:     DomainRecord{IP4: "10.0.0.1", IP6: "::1", CName: "target.com"},
+			record:     base(DomainRecordBase{IP4: "10.0.0.1", IP6: "::1", CName: "target.com"}),
 			recordType: constants.RecordTypeA,
 			zoneID:     "zone1",
 			expected:   "10.0.0.1",
 		},
 		{
 			name: "A record with zone-specific override",
-			record: DomainRecord{
-				IP4:          "10.0.0.1",
-				IP4Overrides: map[string]string{"zone1": "10.0.0.5"},
-			},
+			record: withOverrides(
+				DomainRecordBase{IP4: "10.0.0.1"},
+				map[string]DomainRecordBase{"zone1": {IP4: "10.0.0.5"}},
+			),
 			recordType: constants.RecordTypeA,
 			zoneID:     "zone1",
 			expected:   "10.0.0.5",
 		},
 		{
 			name: "A record override not matching zone",
-			record: DomainRecord{
-				IP4:          "10.0.0.1",
-				IP4Overrides: map[string]string{"other-zone": "10.0.0.5"},
-			},
+			record: withOverrides(
+				DomainRecordBase{IP4: "10.0.0.1"},
+				map[string]DomainRecordBase{"other-zone": {IP4: "10.0.0.5"}},
+			),
 			recordType: constants.RecordTypeA,
 			zoneID:     "zone1",
 			expected:   "10.0.0.1",
 		},
 		{
 			name: "A record override with empty value falls back to default",
-			record: DomainRecord{
-				IP4:          "10.0.0.1",
-				IP4Overrides: map[string]string{"zone1": ""},
-			},
+			record: withOverrides(
+				DomainRecordBase{IP4: "10.0.0.1"},
+				map[string]DomainRecordBase{"zone1": {IP4: ""}},
+			),
 			recordType: constants.RecordTypeA,
 			zoneID:     "zone1",
 			expected:   "10.0.0.1",
 		},
 		{
 			name:       "AAAA record returns IP6",
-			record:     DomainRecord{IP4: "10.0.0.1", IP6: "2001:db8::1", CName: "target.com"},
+			record:     base(DomainRecordBase{IP4: "10.0.0.1", IP6: "2001:db8::1", CName: "target.com"}),
 			recordType: constants.RecordTypeAAAA,
 			zoneID:     "zone1",
 			expected:   "2001:db8::1",
 		},
 		{
 			name: "AAAA record with zone-specific override",
-			record: DomainRecord{
-				IP6:          "2001:db8::1",
-				IP6Overrides: map[string]string{"zone1": "2001:db8::5"},
-			},
+			record: withOverrides(
+				DomainRecordBase{IP6: "2001:db8::1"},
+				map[string]DomainRecordBase{"zone1": {IP6: "2001:db8::5"}},
+			),
 			recordType: constants.RecordTypeAAAA,
 			zoneID:     "zone1",
 			expected:   "2001:db8::5",
 		},
 		{
 			name: "AAAA record override not matching zone",
-			record: DomainRecord{
-				IP6:          "2001:db8::1",
-				IP6Overrides: map[string]string{"other-zone": "2001:db8::5"},
-			},
+			record: withOverrides(
+				DomainRecordBase{IP6: "2001:db8::1"},
+				map[string]DomainRecordBase{"other-zone": {IP6: "2001:db8::5"}},
+			),
 			recordType: constants.RecordTypeAAAA,
 			zoneID:     "zone1",
 			expected:   "2001:db8::1",
 		},
 		{
 			name: "AAAA record override with empty value falls back to default",
-			record: DomainRecord{
-				IP6:          "2001:db8::1",
-				IP6Overrides: map[string]string{"zone1": ""},
-			},
+			record: withOverrides(
+				DomainRecordBase{IP6: "2001:db8::1"},
+				map[string]DomainRecordBase{"zone1": {IP6: ""}},
+			),
 			recordType: constants.RecordTypeAAAA,
 			zoneID:     "zone1",
 			expected:   "2001:db8::1",
 		},
 		{
 			name:       "CNAME record returns CName",
-			record:     DomainRecord{IP4: "10.0.0.1", CName: "target.com"},
+			record:     base(DomainRecordBase{IP4: "10.0.0.1", CName: "target.com"}),
 			recordType: constants.RecordTypeCNAME,
 			zoneID:     "zone1",
 			expected:   "target.com",
 		},
 		{
 			name: "CNAME with zone-specific override",
-			record: DomainRecord{
-				CName:          "default-target.com",
-				CNameOverrides: map[string]string{"zone1": "override-target.com"},
-			},
+			record: withOverrides(
+				DomainRecordBase{CName: "default-target.com"},
+				map[string]DomainRecordBase{"zone1": {CName: "override-target.com"}},
+			),
 			recordType: constants.RecordTypeCNAME,
 			zoneID:     "zone1",
 			expected:   "override-target.com",
 		},
 		{
 			name: "CNAME override not matching zone",
-			record: DomainRecord{
-				CName:          "default-target.com",
-				CNameOverrides: map[string]string{"other-zone": "override-target.com"},
-			},
+			record: withOverrides(
+				DomainRecordBase{CName: "default-target.com"},
+				map[string]DomainRecordBase{"other-zone": {CName: "override-target.com"}},
+			),
 			recordType: constants.RecordTypeCNAME,
 			zoneID:     "zone1",
 			expected:   "default-target.com",
 		},
 		{
 			name: "CNAME override with empty value falls back to default",
-			record: DomainRecord{
-				CName:          "default-target.com",
-				CNameOverrides: map[string]string{"zone1": ""},
-			},
+			record: withOverrides(
+				DomainRecordBase{CName: "default-target.com"},
+				map[string]DomainRecordBase{"zone1": {CName: ""}},
+			),
 			recordType: constants.RecordTypeCNAME,
 			zoneID:     "zone1",
 			expected:   "default-target.com",
 		},
 		{
 			name:       "Unknown record type returns empty",
-			record:     DomainRecord{IP4: "10.0.0.1"},
+			record:     base(DomainRecordBase{IP4: "10.0.0.1"}),
 			recordType: "MX",
 			zoneID:     "zone1",
 			expected:   "",
@@ -190,46 +200,46 @@ func TestDomainRecord_GetProxiedForZone(t *testing.T) {
 	}{
 		{
 			name:     "default proxied value",
-			record:   DomainRecord{Proxied: true},
+			record:   base(DomainRecordBase{Proxied: true}),
 			zoneID:   "zone1",
 			expected: true,
 		},
 		{
 			name:     "default false",
-			record:   DomainRecord{Proxied: false},
+			record:   base(DomainRecordBase{Proxied: false}),
 			zoneID:   "zone1",
 			expected: false,
 		},
 		{
 			name: "zone-specific override to true",
-			record: DomainRecord{
-				Proxied:          false,
-				ProxiedOverrides: map[string]bool{"zone1": true},
-			},
+			record: withOverrides(
+				DomainRecordBase{Proxied: false},
+				map[string]DomainRecordBase{"zone1": {Proxied: true}},
+			),
 			zoneID:   "zone1",
 			expected: true,
 		},
 		{
 			name: "zone-specific override to false",
-			record: DomainRecord{
-				Proxied:          true,
-				ProxiedOverrides: map[string]bool{"zone1": false},
-			},
+			record: withOverrides(
+				DomainRecordBase{Proxied: true},
+				map[string]DomainRecordBase{"zone1": {Proxied: false}},
+			),
 			zoneID:   "zone1",
 			expected: false,
 		},
 		{
 			name: "override not matching zone",
-			record: DomainRecord{
-				Proxied:          true,
-				ProxiedOverrides: map[string]bool{"other-zone": false},
-			},
+			record: withOverrides(
+				DomainRecordBase{Proxied: true},
+				map[string]DomainRecordBase{"other-zone": {Proxied: false}},
+			),
 			zoneID:   "zone1",
 			expected: true,
 		},
 		{
 			name:     "nil overrides map",
-			record:   DomainRecord{Proxied: true, ProxiedOverrides: nil},
+			record:   base(DomainRecordBase{Proxied: true}),
 			zoneID:   "zone1",
 			expected: true,
 		},
@@ -253,42 +263,42 @@ func TestDomainRecord_GetTTLForZone(t *testing.T) {
 	}{
 		{
 			name:     "default TTL value",
-			record:   DomainRecord{TTL: 300},
+			record:   base(DomainRecordBase{TTL: 300}),
 			zoneID:   "zone1",
 			expected: 300,
 		},
 		{
 			name: "zone-specific override",
-			record: DomainRecord{
-				TTL:          300,
-				TTLOverrides: map[string]int{"zone1": 600},
-			},
+			record: withOverrides(
+				DomainRecordBase{TTL: 300},
+				map[string]DomainRecordBase{"zone1": {TTL: 600}},
+			),
 			zoneID:   "zone1",
 			expected: 600,
 		},
 		{
 			name: "override not matching zone",
-			record: DomainRecord{
-				TTL:          300,
-				TTLOverrides: map[string]int{"other-zone": 600},
-			},
+			record: withOverrides(
+				DomainRecordBase{TTL: 300},
+				map[string]DomainRecordBase{"other-zone": {TTL: 600}},
+			),
 			zoneID:   "zone1",
 			expected: 300,
 		},
 		{
 			name:     "nil overrides map",
-			record:   DomainRecord{TTL: 300, TTLOverrides: nil},
+			record:   base(DomainRecordBase{TTL: 300}),
 			zoneID:   "zone1",
 			expected: 300,
 		},
 		{
-			name: "zero value override is valid",
-			record: DomainRecord{
-				TTL:          300,
-				TTLOverrides: map[string]int{"zone1": 0},
-			},
+			name: "zero value override inherits base TTL",
+			record: withOverrides(
+				DomainRecordBase{TTL: 300},
+				map[string]DomainRecordBase{"zone1": {TTL: 0}},
+			),
 			zoneID:   "zone1",
-			expected: 0,
+			expected: 300,
 		},
 	}
 
@@ -310,42 +320,42 @@ func TestDomainRecord_GetCommentForZone(t *testing.T) {
 	}{
 		{
 			name:     "default comment value",
-			record:   DomainRecord{Comment: "default comment"},
+			record:   base(DomainRecordBase{Comment: "default comment"}),
 			zoneID:   "zone1",
 			expected: "default comment",
 		},
 		{
 			name: "zone-specific override",
-			record: DomainRecord{
-				Comment:          "default comment",
-				CommentOverrides: map[string]string{"zone1": "zone-specific comment"},
-			},
+			record: withOverrides(
+				DomainRecordBase{Comment: "default comment"},
+				map[string]DomainRecordBase{"zone1": {Comment: "zone-specific comment"}},
+			),
 			zoneID:   "zone1",
 			expected: "zone-specific comment",
 		},
 		{
 			name: "override not matching zone",
-			record: DomainRecord{
-				Comment:          "default comment",
-				CommentOverrides: map[string]string{"other-zone": "other comment"},
-			},
+			record: withOverrides(
+				DomainRecordBase{Comment: "default comment"},
+				map[string]DomainRecordBase{"other-zone": {Comment: "other comment"}},
+			),
 			zoneID:   "zone1",
 			expected: "default comment",
 		},
 		{
 			name:     "nil overrides map",
-			record:   DomainRecord{Comment: "default comment", CommentOverrides: nil},
+			record:   base(DomainRecordBase{Comment: "default comment"}),
 			zoneID:   "zone1",
 			expected: "default comment",
 		},
 		{
-			name: "empty string override is valid",
-			record: DomainRecord{
-				Comment:          "default comment",
-				CommentOverrides: map[string]string{"zone1": ""},
-			},
+			name: "empty string override inherits base comment",
+			record: withOverrides(
+				DomainRecordBase{Comment: "default comment"},
+				map[string]DomainRecordBase{"zone1": {Comment: ""}},
+			),
 			zoneID:   "zone1",
-			expected: "",
+			expected: "default comment",
 		},
 	}
 
@@ -359,11 +369,11 @@ func TestDomainRecord_GetCommentForZone(t *testing.T) {
 }
 
 func TestDomainRecord_GetContent(t *testing.T) {
-	record := DomainRecord{
+	record := base(DomainRecordBase{
 		IP4:   "10.0.0.1",
 		IP6:   "::1",
 		CName: "target.com",
-	}
+	})
 
 	tests := []struct {
 		name       string

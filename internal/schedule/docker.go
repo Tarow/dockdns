@@ -66,3 +66,7 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 		time.Sleep(5 * time.Second)
 	}
 }
+
+func (d *DockerEventTrigger) Reset() {
+	// No-op for Docker events
+}

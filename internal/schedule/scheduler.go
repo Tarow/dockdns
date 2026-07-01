@@ -65,7 +65,6 @@ func (s *Scheduler) Start(ctx context.Context, debounceInterval time.Duration, m
 		}
 
 		slog.Debug("Received event, resetting debounce timer", "name", e.Name, "event", e)
-		slog.Debug("TriggerEvent details", "event", e)
 		debounceTimer.Reset(debounceInterval)
 
 		// If we start debouncing, set the max deboune time

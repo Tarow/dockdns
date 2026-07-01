@@ -86,14 +86,18 @@ domains:
   - name: "alt.somedomain.com" # Name of the CNAME record
     cname: "main.somedomain.com" # Target of the CNAME record
 
-  # Example with provider-specific overrides
+  # Example with provider-specific overrides.
+  # Each override block is keyed by the zone's `id` (or zone name if `id` is not
+  # set) and reuses the same fields as the base record. Only the fields set in an
+  # override take effect; everything else inherits the base values.
   - name: "app.somedomain.com"
     cname: "default-target.somedomain.com"
-    cnameOverrides:
-      technitium-internal: "internal-target.local"  # Different CNAME for Technitium zone
     proxied: false
-    proxiedOverrides:
-      cloudflare-prod: true  # Enable Cloudflare proxy for this zone
+    overrides:
+      technitium-internal:
+        cname: "internal-target.local"  # Different CNAME for the Technitium zone
+      cloudflare-prod:
+        proxied: true                   # Enable Cloudflare proxy for this zone
 ```
 
 ## Dynamic Domains
@@ -197,7 +201,6 @@ For example, if you use [docker-socket-proxy](https://github.com/Tecnativa/docke
 |----------|-------------|
 | `DOCKER_HOST` | Docker daemon socket (e.g., `tcp://docker-socket-proxy:2375`) |
 | `HOST_HOSTNAME` | Physical host machine's hostname. Used in Technitium DNS record comments to identify which host created the record. Set to `$(hostname)` when running in Docker. |
-| `HOSTNAME_OVERRIDE` | Alternative to `HOST_HOSTNAME` for setting the hostname in record comments. |
 
 ## Development
 
