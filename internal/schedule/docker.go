@@ -6,9 +6,7 @@ import (
 	"time"
 
 	"github.com/Tarow/dockdns/internal/constants"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 type DockerEventTrigger struct {
@@ -22,10 +20,9 @@ func NewDockerEventTrigger(dockerCli *client.Client) *DockerEventTrigger {
 }
 
 func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- TriggerEvent) {
-	filterArgs := filters.NewArgs(
-		filters.Arg("type", "container"),
-		filters.Arg("label", constants.DockdnsNameLabel),
-	)
+	filterArgs := client.Filters{}
+	filterArgs.Add("type", "container")
+	filterArgs.Add("label", constants.DockdnsNameLabel)
 	containerEventTypes := []string{"start", "stop", "die"}
 
 	for _, cet := range containerEventTypes {
@@ -33,14 +30,14 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 	}
 
 	for {
-		eventsCh, errs := d.client.Events(ctx, events.ListOptions{Filters: filterArgs})
+		result := d.client.Events(ctx, client.EventsListOptions{Filters: filterArgs})
 
 		for {
 			select {
 			case <-ctx.Done():
 				slog.Debug("DockerEventTrigger received stop signal")
 				return
-			case ev, ok := <-eventsCh:
+			case ev, ok := <-result.Messages:
 				if !ok {
 					goto reconnect
 				} else {
@@ -56,7 +53,7 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 						Name: "DockerEventTrigger:" + actionStr + ":" + containerName,
 					}
 				}
-			case err, ok := <-errs:
+			case err, ok := <-result.Err:
 				if !ok {
 					goto reconnect
 				} else {
@@ -68,8 +65,4 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 		slog.Warn("Docker event channel was closed. Trying to reconnect in 5 seconds")
 		time.Sleep(5 * time.Second)
 	}
-}
-
-func (d *DockerEventTrigger) Reset() {
-	// No-op for Docker events
 }

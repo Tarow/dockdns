@@ -18,8 +18,8 @@ import (
 	"github.com/Tarow/dockdns/internal/dns"
 	"github.com/Tarow/dockdns/internal/provider"
 	"github.com/Tarow/dockdns/internal/schedule"
-	"github.com/docker/docker/client"
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/moby/moby/client"
 )
 
 var configPath string
@@ -66,17 +66,15 @@ func main() {
 		}
 	}
 
-	dockerCli, err := client.NewClientWithOpts(client.FromEnv)
+	dockerCli, err := client.New(client.FromEnv)
 	if err != nil {
 		dockerCli = nil
 		slog.Warn("Could not create docker client, ignoring dynamic configuration", "error", err)
 	} else {
-		if _, err := dockerCli.Ping(context.Background()); err != nil {
+		if _, err := dockerCli.Ping(context.Background(), client.PingOptions{}); err != nil {
 			slog.Error("failed to ping docker daemon", "err", err)
 			os.Exit(1)
 		}
-
-		dockerCli.NegotiateAPIVersion(context.Background())
 	}
 
 	dnsHandler := dns.NewHandler(providers, appCfg.DNS, appCfg.Domains, dockerCli)
@@ -107,9 +105,7 @@ func main() {
 	scheduler.Register(dockerEventTrigger)
 	scheduler.Register(intervalTrigger)
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		slog.Info("Starting DNS updater")
 
 		// Start scheduler
@@ -119,7 +115,7 @@ func main() {
 			true)
 
 		slog.Info("Received termination signal. Exiting DNS updater...")
-	}()
+	})
 
 	var server *http.Server
 	if appCfg.WebUI {
@@ -133,15 +129,13 @@ func main() {
 			Addr:    ":8080",
 			Handler: mux,
 		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			if err := server.ListenAndServe(); err != http.ErrServerClosed {
 				slog.Error("HTTP server error", "err", err)
 			} else {
 				slog.Info("Received shutdown signal, shutting down API server ...")
 			}
-		}()
+		})
 	}
 
 	// wait for kill signal

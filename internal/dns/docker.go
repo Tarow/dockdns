@@ -10,19 +10,21 @@ import (
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/constants"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 func (h Handler) filterDockerLabels() ([]config.DomainRecord, error) {
-	containers, err := h.dockerCli.ContainerList(context.Background(), container.ListOptions{
-		Filters: filters.NewArgs(filters.Arg("label", constants.DockdnsNameLabel)),
+	filterArgs := client.Filters{}
+	filterArgs.Add("label", constants.DockdnsNameLabel)
+	result, err := h.dockerCli.ContainerList(context.Background(), client.ContainerListOptions{
+		Filters: filterArgs,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	return parseContainerLabels(containers)
+	return parseContainerLabels(result.Items)
 }
 
 func parseContainerLabels(containers []container.Summary) ([]config.DomainRecord, error) {
@@ -67,7 +69,7 @@ func getShortContainerID(id string) string {
 func parseLabels(ctr container.Summary, targetStruct *config.DomainRecord) error {
 	containerLabels := ctr.Labels
 	targetValue := reflect.ValueOf(targetStruct)
-	if targetValue.Kind() != reflect.Ptr || targetValue.Elem().Kind() != reflect.Struct {
+	if targetValue.Kind() != reflect.Pointer || targetValue.Elem().Kind() != reflect.Struct {
 		return fmt.Errorf("targetStruct must be a pointer to a struct")
 	}
 
@@ -181,7 +183,7 @@ func parseProviderOverrides(labels map[string]string, record *config.DomainRecor
 }
 
 func setFieldValue(field reflect.Value, labelValue string) error {
-	if field.Kind() == reflect.Ptr {
+	if field.Kind() == reflect.Pointer {
 		// If the field is a pointer, create a new instance of the underlying type and set the value
 		if field.IsNil() {
 			field.Set(reflect.New(field.Type().Elem()))

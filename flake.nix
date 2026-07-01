@@ -2,7 +2,7 @@
   description = "DockDNS";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
   outputs = {
@@ -65,7 +65,7 @@
               ./static
             ];
           };
-          vendorHash = "sha256-xVDnePe5cC7PRj1MY0kS3vscpI1Jtay5DsArUGB5QrU=";
+          vendorHash = "sha256-kz00Im0LRrBoYPCJqCmNW+6E2g6p+bTqF/tzWbBvXE0=";
           meta.mainProgram = "dockdns";
         };
 

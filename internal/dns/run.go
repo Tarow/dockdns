@@ -7,7 +7,7 @@ import (
 
 	"github.com/Tarow/dockdns/internal/config"
 	"github.com/Tarow/dockdns/internal/ip"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 type Handler struct {
