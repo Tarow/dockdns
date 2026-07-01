@@ -9,9 +9,23 @@ log:
   format: simple
 
 zones:
+  # Cloudflare zone with custom ID for override lookups
   - name: somedomain.com
+    id: cloudflare-prod           # Optional: custom ID for override labels (defaults to zone name if not set)
     provider: cloudflare
     apiToken: ... # Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
+    zoneID: 
+  # Example Technitium DNS configuration with custom ID
+  - name: internal.example.com
+    id: technitium-internal       # Optional: custom ID for override labels
+    provider: technitium
+    apiURL: http://192.168.1.10:5380  # Technitium DNS Server URL
+    # Option 1: Use API token (recommended)
+    apiToken: ...                      # Technitium API token (can be passed as environment variable)
+    # Option 2: Use username/password (if no apiToken is set)
+    # apiUsername: admin               # Technitium username
+    # apiPassword: ...                 # Technitium password
+    # skipTLSVerify: true              # Skip TLS certificate verification (for self-signed certs)
 
 dns:
   a: true
@@ -25,6 +39,43 @@ domains:
 
   - name: "somedomain.com"
     a: 10.0.0.2
+    proxied: true  # Enable Cloudflare proxy for this domain
 
   - name: "alt.somedomain.com"
     cname: "main.somedomain.com"
+
+  # Example with provider-specific overrides.
+  # Each override block is keyed by the zone's 'id' (or zone name if 'id' is not
+  # set) and reuses the same fields as the base record. Only the fields you set
+  # in an override take effect; everything else inherits the base values.
+  #
+  # Here: a different CNAME target for the Technitium zone, and Cloudflare proxy
+  # enabled only on the Cloudflare zone.
+  - name: "app.somedomain.com"
+    cname: "default-target.somedomain.com"
+    proxied: false
+    overrides:
+      technitium-internal:
+        cname: "internal-target.local"  # Use a different CNAME for the Technitium zone
+      cloudflare-prod:
+        proxied: true                   # Enable Cloudflare proxy for this zone
+
+  # Example exercising all override fields
+  - name: "multi.somedomain.com"
+    a: "10.0.0.1"
+    ttl: 300
+    comment: "Default configuration"
+    overrides:
+      cloudflare-prod:
+        a: "10.0.0.10"                  # Different IP for the Cloudflare zone
+        comment: "Production server"
+      technitium-internal:
+        ttl: 600                        # Higher TTL for the internal zone
+        comment: "Internal server"
+
+  # Equivalent Docker label form of the override structure:
+  #   dockdns.name=multi.somedomain.com
+  #   dockdns.a=10.0.0.1
+  #   dockdns.cloudflare-prod.a=10.0.0.10
+  #   dockdns.cloudflare-prod.comment=Production server
+  #   dockdns.technitium-internal.ttl=600
