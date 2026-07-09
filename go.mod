@@ -6,7 +6,7 @@ toolchain go1.26.5
 
 require (
 	github.com/a-h/templ v0.3.1020
-	github.com/cloudflare/cloudflare-go/v7 v7.6.0
+	github.com/cloudflare/cloudflare-go/v7 v7.7.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.5.0
