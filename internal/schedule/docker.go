@@ -37,12 +37,20 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 			case <-ctx.Done():
 				slog.Debug("DockerEventTrigger received stop signal")
 				return
-			case _, ok := <-result.Messages:
+			case ev, ok := <-result.Messages:
 				if !ok {
 					goto reconnect
 				} else {
+					containerName := ""
+					if ev.Actor.Attributes != nil {
+						if name, ok := ev.Actor.Attributes["name"]; ok {
+							containerName = name
+						}
+					}
+					actionStr := string(ev.Action)
+					slog.Debug("DockerEventTrigger received event", "container", containerName, "eventType", actionStr)
 					eventChan <- TriggerEvent{
-						Name: "DockerEventTrigger",
+						Name: "DockerEventTrigger:" + actionStr + ":" + containerName,
 					}
 				}
 			case err, ok := <-result.Err:
@@ -51,7 +59,6 @@ func (d *DockerEventTrigger) Start(ctx context.Context, eventChan chan<- Trigger
 				} else {
 					slog.Warn("Error listening to Docker events", "err", err)
 				}
-
 			}
 		}
 	reconnect:

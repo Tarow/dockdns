@@ -1,0 +1,20 @@
+interval: 3
+debounceTime: 10
+maxDebounceTime: 600
+
+webUI: false
+
+log:
+  level: debug
+  format: simple
+
+zones:
+  - name: localdomain.test
+    provider: cloudflare
+    apiToken: ...
+
+dns:
+  a: true
+  aaaa: false
+  defaultTTL: 300
+  purgeUnknown: true
