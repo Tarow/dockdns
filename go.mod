@@ -2,7 +2,7 @@ module github.com/Tarow/dockdns
 
 go 1.25.0
 
-toolchain go1.26.5
+toolchain go1.26.6
 
 require (
 	github.com/a-h/templ v0.3.1020
