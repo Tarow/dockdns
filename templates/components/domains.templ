@@ -50,7 +50,7 @@ templ DomainList(domains config.Domains) {
 					{ fmt.Sprintf("%v", domain.TTL) }
 				</td>
 				<td class="px-6 py-4">
-					{ fmt.Sprintf("%v", domain.Proxied) }
+					{ fmt.Sprintf("%v", domain.GetProxiedForZone("")) }
 				</td>
 				<td class="px-6 py-4 max-w-[300px] truncate hover:whitespace-normal">
 					{ domain.Comment }

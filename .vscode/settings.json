@@ -1,0 +1,7 @@
+{
+    "makefile.configureOnOpen": false,
+    "chat.promptFiles": true,
+    "chat.promptFilesLocations": {
+        ".github/agents": true
+    }
+}
