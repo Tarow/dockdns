@@ -1,11 +1,11 @@
 module github.com/Tarow/dockdns
 
-go 1.25.0
+go 1.26.0
 
 toolchain go1.27.2
 
 require (
-	github.com/a-h/templ v0.3.1020
+	github.com/a-h/templ v0.3.1070
 	github.com/cloudflare/cloudflare-go/v7 v7.12.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/moby/moby/api v1.56.1
@@ -37,7 +37,7 @@ require (
 	go.opentelemetry.io/otel v1.42.0 // indirect
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
 	go.opentelemetry.io/otel/trace v1.42.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	olympos.io/encoding/edn v0.0.0-20201019073823-d3554ca0b0a3 // indirect
 )
