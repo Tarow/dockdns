@@ -5,7 +5,7 @@
 # DockDNS - (Dynamic) DNS Client based on Docker Labels
 
 DockDNS is a DNS updater, which supports configuring DNS records through Docker labels.
-Currently DockDNS only supports Cloudflare as a DNS provider.
+DockDNS supports Cloudflare and Technitium DNS Server as providers.
 
 ## Features
 
@@ -16,6 +16,7 @@ Currently DockDNS only supports Cloudflare as a DNS provider.
 - IPv4 & IPv6 support
 - CNAME support
 - Supports multiple zones
+- Provider-specific overrides for CNAME and Proxied settings
 - Automatically trigger DNS updates when labeled containers start & stop
 
 ## Configuration
@@ -35,10 +36,38 @@ log:
 
 zones: # Zone configuration (multiple zones can be provided)
   - name: somedomain.com # Root name of the zone
-    provider: cloudflare # Name of the provider. Currently only Cloudflare is supported
+    id: cloudflare_prod # Optional: custom ID for override labels (Docker labels require letters, numbers, and underscores)
+    provider: cloudflare # Name of the provider. Supported: cloudflare, technitium
+
+## Technitium DNS Provider
+
+DockDNS supports Technitium DNS Server through its HTTP API. This allows full management of A, AAAA, and CNAME records.
+
+Example zone configuration:
+
+```yaml
+zones:
+  - name: internal.example.com
+    id: technitium_internal           # Optional: custom ID for override labels
+    provider: technitium
+    apiURL: http://192.168.1.10:5380  # Technitium DNS Server URL
+    # Option 1: Use API token (recommended)
+    apiToken: ...                      # Technitium API token
+    # Option 2: Use username/password (if no apiToken is set)
+    # apiUsername: admin               # Technitium username
+    # apiPassword: ...                 # Technitium password
+    # skipTLSVerify: true              # Skip TLS certificate verification (for self-signed certs)
+```
+
+### Supported Operations
+- Create, Update, Delete A, AAAA, and CNAME records
+- List all records in a zone
+- Get a specific record by name and type
+- Automatic authentication and session management
+
+> Note: The Technitium provider uses the HTTP API and requires either an API token or a user account with appropriate permissions.
     apiToken: ... # API Token, needs permission 'Zone.Zone' (read) and Zone.DNS (edit). Can also be passed as environment variable: SOMEDOMAIN_COM_API_TOKEN
     zoneID: ... # Optional: If not set, will be fetched dynamically. ZoneID of this zone. Can also be passed as environment variable: SOMEDOMAIN_COM_ZONE_ID
-
 dns:
   a: true # Update IPv4 addresses
   aaaa: false # Update IPv6 addresses
@@ -56,21 +85,58 @@ domains:
 
   - name: "alt.somedomain.com" # Name of the CNAME record
     cname: "main.somedomain.com" # Target of the CNAME record
+
+  # Example with provider-specific overrides.
+  # Each override block is keyed by the zone's `id` (or zone name if `id` is not
+  # set) and reuses the same fields as the base record. Only the fields set in an
+  # override take effect; everything else inherits the base values.
+  - name: "app.somedomain.com"
+    cname: "default-target.somedomain.com"
+    proxied: false
+    overrides:
+      technitium_internal:
+        cname: "internal-target.local"  # Different CNAME for the Technitium zone
+      cloudflare_prod:
+        proxied: true                   # Enable Cloudflare proxy for this zone
 ```
 
 ## Dynamic Domains
 
 Domains can also be configured using Docker labels.
 Supported labels:
-| Label | Example |
-|-----------------|-----------------------------|
-| dockdns.name | dockdns.name=somedomain.com |
-| dockdns.a | dockdns.a=127.0.0.1 |
-| dockdns.aaaa | dockdns.aaaa=::1 |
-| dockdns.cname | dockdns.cname=target.otherdomain.com |
-| dockdns.ttl | dockdns.ttl=600 |
-| dockdns.proxied | dockdns.proxied=false |
-| dockdns.comment | dockdns.comment=Some comment |
+| Label | Example | Description |
+|----------------------|-------------------------------------------|-------------|
+| dockdns.name | dockdns.name=somedomain.com | Domain name (required) |
+| dockdns.a | dockdns.a=127.0.0.1 | Static IPv4 address |
+| dockdns.aaaa | dockdns.aaaa=::1 | Static IPv6 address |
+| dockdns.cname | dockdns.cname=target.otherdomain.com | CNAME target |
+| dockdns.ttl | dockdns.ttl=600 | Record TTL |
+| dockdns.proxied | dockdns.proxied=false | Cloudflare proxy (default) |
+| dockdns.comment | dockdns.comment=Some comment | Record comment |
+
+#### Zone-Specific Overrides
+
+You can override any field for specific zones/providers using the format: `dockdns.overrides.<zone-id>.<field>=value`
+
+The `<zone-id>` must match the zone's `id` field and may only contain letters, numbers, and underscores. Docker label overrides require an explicit safe zone `id`; zone names such as `example.com` cannot be used directly in override labels. Empty or omitted override values inherit the base record value. A static base IP with a dynamic IP override is not currently supported.
+
+| Label | Example | Description |
+|----------------------|-------------------------------------------|-------------|
+| dockdns.overrides.\<id\>.a | dockdns.overrides.cloudflare_prod.a=10.0.0.5 | Zone-specific IPv4 address |
+| dockdns.overrides.\<id\>.aaaa | dockdns.overrides.zone1.aaaa=2001:db8::5 | Zone-specific IPv6 address |
+| dockdns.overrides.\<id\>.cname | dockdns.overrides.technitium_internal.cname=target.local | Zone-specific CNAME target |
+| dockdns.overrides.\<id\>.ttl | dockdns.overrides.zone1.ttl=600 | Zone-specific TTL |
+| dockdns.overrides.\<id\>.proxied | dockdns.overrides.cloudflare_prod.proxied=true | Zone-specific proxied setting |
+| dockdns.overrides.\<id\>.comment | dockdns.overrides.zone1.comment=Zone comment | Zone-specific comment |
+
+Example:
+```yaml
+# Group settings by zone
+dockdns.overrides.cloudflare_prod.a=10.0.0.5
+dockdns.overrides.cloudflare_prod.proxied=true
+dockdns.overrides.technitium_internal.a=192.168.1.10
+dockdns.overrides.technitium_internal.ttl=600
+```
 
 ---
 
@@ -125,3 +191,16 @@ nix run github:tarow/dockdns
 
 Note: To avoid direct socket access, you can also set environment variable `DOCKER_HOST`.
 For example, if you use [docker-socket-proxy](https://github.com/Tecnativa/docker-socket-proxy), you may set the environment variable `DOCKER_HOST=tcp://docker-socket-proxy:2375`.
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `DOCKER_HOST` | Docker daemon socket (e.g., `tcp://docker-socket-proxy:2375`) |
+
+## Development
+
+You need:
+
+* Go 1.23
+* Templ

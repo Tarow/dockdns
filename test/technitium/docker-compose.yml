@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  technitium:
+    image: technitium/dns-server:latest
+    container_name: technitium-dns-test
+    hostname: dns-server
+    ports:
+      - "5380:5380"  # HTTP API
+      - "53:53/udp"  # DNS UDP
+      - "53:53/tcp"  # DNS TCP
+    environment:
+      - DNS_SERVER_DOMAIN=dns-server
+      - DNS_SERVER_ADMIN_PASSWORD=admin123
+      - DNS_SERVER_ADMIN_PASSWORD_FILE=
+    volumes:
+      - technitium-data:/etc/dns
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  technitium-data:
